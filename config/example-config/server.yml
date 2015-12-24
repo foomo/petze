@@ -1,0 +1,3 @@
+---
+address: 127.0.0.1:8888
+basicauthfile: /Users/jan/go/src/github.com/foomo/petze/config/test-htpasswd

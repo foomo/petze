@@ -1,9 +1,0 @@
----
-people:
-  -
-    name: foo
-    email: jan@bar.com
-    phone: +1 notify me
-services:
-  -
-    endpoint: https://www.google.com/

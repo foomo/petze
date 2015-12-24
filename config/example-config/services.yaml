@@ -1,0 +1,7 @@
+---
+google:
+  endpoint: https://www.google.com/
+  interval: 100
+bestbytes:
+  endpoint: https://www.bestbytes.com/
+  interval: 100
