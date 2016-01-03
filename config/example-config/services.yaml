@@ -1,7 +1,15 @@
 ---
-google:
-  endpoint: https://www.google.com/
+heise:
+  endpoint: https://www.heise.de/
   interval: 100
 bestbytes:
   endpoint: https://www.bestbytes.com/
-  interval: 100
+  interval: 10
+  alert:
+    after: 100
+nodns:
+  endpoint: http://jan:jan@127.0.0.1:8888/status
+  interval: 300
+dnserr:
+  endpoint: https://www.ca-not-resolve.this/
+  interval: 3

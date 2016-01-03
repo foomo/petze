@@ -58,7 +58,10 @@ func newServer(servicesConfigfile string, peopleConfigfile string) (s *server, e
 		router:    httprouter.New(),
 		collector: coll,
 	}
-	s.router.GET("/collector/config/services", s.GETCollectorConfigServices)
+	s.router.GET("/services", s.GETServices)
+	s.router.GET("/status", s.GETStatus)
+	s.router.GET("/alerts", s.GETAlerts)
+	s.router.POST("/user-token/:user", s.POSTUserToken)
 	return s, nil
 }
 

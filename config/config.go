@@ -6,6 +6,10 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+type Alert struct {
+	After int
+}
+
 type Contact struct {
 	Email string
 	Phone string
@@ -21,9 +25,14 @@ type Service struct {
 	Endpoint string
 	ID       string
 	Interval int
+	Alert    *Alert
 }
 
 type Server struct {
+	APN struct {
+		Gateway string
+		Pemfile string
+	}
 	Address       string
 	BasicAuthFile string
 	TLS           *struct {
@@ -48,6 +57,11 @@ func LoadServices(configFile string) (services map[string]*Service, err error) {
 		service.ID = id
 		if service.Interval == 0 {
 			service.Interval = 60
+		}
+		if service.Alert == nil {
+			service.Alert = &Alert{
+				After: 300,
+			}
 		}
 	}
 	return services, nil
