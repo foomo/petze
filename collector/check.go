@@ -11,10 +11,10 @@ func serviceIsDown(results []*watch.Result) (down bool, start time.Time) {
 	isDown := false
 	var downSince time.Time
 	for _, result := range results {
-		if len(result.Error) > 0 && isDown == false {
+		if len(result.Errors) > 0 && isDown == false {
 			isDown = true
 			downSince = result.Timestamp
-		} else if len(result.Error) == 0 && isDown == true {
+		} else if len(result.Errors) == 0 && isDown == true {
 			isDown = false
 		}
 	}

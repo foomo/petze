@@ -22,10 +22,11 @@ type Person struct {
 
 // Service a service to monitor
 type Service struct {
-	Endpoint string
-	ID       string
-	Interval int
-	Alert    *Alert
+	Endpoint   string
+	ID         string
+	Interval   int
+	MaxRuntime int
+	Alert      *Alert
 }
 
 type Server struct {
@@ -55,6 +56,9 @@ func LoadServices(configFile string) (services map[string]*Service, err error) {
 	}
 	for id, service := range services {
 		service.ID = id
+		if service.MaxRuntime == 0 {
+			service.MaxRuntime = 1000
+		}
 		if service.Interval == 0 {
 			service.Interval = 60
 		}
