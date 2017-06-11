@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"os"
 
@@ -11,20 +10,17 @@ import (
 )
 
 func main() {
-	flagServer := flag.String("server", "", "server config file")
-	flagPeople := flag.String("people", "", "server config file")
-	flagServices := flag.String("services", "", "server config file")
+	flagConfigDir := flag.String("config-dir", "", "config-dir")
 	flag.Parse()
 
-	if len(*flagPeople) == 0 || len(*flagServer) == 0 || len(*flagServices) == 0 {
-		fmt.Println("usage", os.Args[0])
-		flag.PrintDefaults()
+	if *flagConfigDir == "" {
+		flag.Usage()
 		os.Exit(1)
 	}
 
-	serverConfig, err := config.LoadServer(*flagServer)
+	serverConfig, err := config.LoadServer(*flagConfigDir)
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Println(service.Run(serverConfig, *flagServices, *flagPeople))
+	log.Println(service.Run(serverConfig, *flagConfigDir))
 }

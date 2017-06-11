@@ -1,6 +1,0 @@
----
-address: :8888
-basicauthfile: /Users/jan/go/src/github.com/foomo/petze/config/test-htpasswd
-apn:
-  gateway: gateway.sandbox.push.apple.com:2195
-  pem: /Users/jan/Desktop/apn-dev.pem

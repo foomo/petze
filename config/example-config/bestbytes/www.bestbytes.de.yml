@@ -1,0 +1,4 @@
+---
+endpoint: http://www.bestbytes.de/
+interval: 3
+maxruntime: 100

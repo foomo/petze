@@ -1,0 +1,7 @@
+---
+#address: :8888
+tls:
+  address: petze.bestbytes.net:8443
+  cert: /Users/jan/go/src/github.com/foomo/petze/.config/cert.pem
+  key: /Users/jan/go/src/github.com/foomo/petze/.config/key.pem
+basicauthfile: /Users/jan/go/src/github.com/foomo/petze/config/example-config/test-htpasswd

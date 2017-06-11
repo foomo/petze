@@ -1,23 +1,22 @@
 package config
 
 import (
+	"errors"
 	"io/ioutil"
+	"os"
+	"path"
 
-	"gopkg.in/yaml.v2"
+	"path/filepath"
+
+	"strings"
+
+	yaml "gopkg.in/yaml.v1"
 )
 
-type Alert struct {
-	After int
-}
+const serverConfigFile = "petze.yml"
 
-type Contact struct {
-	Email string
-	Phone string
-}
-
-type Person struct {
-	Name    string
-	Contact Contact
+type Check struct {
+	OK bool
 }
 
 // Service a service to monitor
@@ -26,14 +25,10 @@ type Service struct {
 	ID         string
 	Interval   int
 	MaxRuntime int
-	Alert      *Alert
+	Checks     []Check
 }
 
 type Server struct {
-	APN struct {
-		Gateway string
-		Pemfile string
-	}
 	Address       string
 	BasicAuthFile string
 	TLS           *struct {
@@ -43,15 +38,11 @@ type Server struct {
 	}
 }
 
-func LoadPeople(configFile string) (people map[string]*Person, err error) {
-	people = make(map[string]*Person)
-	return people, load(configFile, &people)
-}
-
-func LoadServices(configFile string) (services map[string]*Service, err error) {
+func LoadServices(configDir string) (services map[string]*Service, err error) {
 	services = make(map[string]*Service)
-	err = load(configFile, &services)
-	if err != nil {
+	errLoadServices := loadServicesFromDir(configDir, services)
+	if errLoadServices != nil {
+		err = errors.New("could not load service configurations from config dir : " + configDir + ",  : " + errLoadServices.Error())
 		return
 	}
 	for id, service := range services {
@@ -62,18 +53,30 @@ func LoadServices(configFile string) (services map[string]*Service, err error) {
 		if service.Interval == 0 {
 			service.Interval = 60
 		}
-		if service.Alert == nil {
-			service.Alert = &Alert{
-				After: 300,
-			}
-		}
 	}
 	return services, nil
 }
 
-func LoadServer(configFile string) (server *Server, err error) {
+func LoadServer(configDir string) (server *Server, err error) {
 	server = &Server{}
-	return server, load(configFile, &server)
+	return server, load(path.Join(configDir, serverConfigFile), &server)
+}
+
+func loadServicesFromDir(configDir string, targets map[string]*Service) error {
+	absoluteConfigDir, errAbsoluteConfigDir := filepath.Abs(configDir)
+	if errAbsoluteConfigDir != nil {
+		return errAbsoluteConfigDir
+	}
+	return filepath.Walk(absoluteConfigDir, func(fp string, info os.FileInfo, err error) error {
+		if !info.IsDir() && !strings.HasPrefix(info.Name(), ".") && strings.HasSuffix(fp, ".yml") {
+			p := strings.TrimSuffix(strings.TrimPrefix(fp, absoluteConfigDir+string(os.PathSeparator)), ".yml")
+			// fmt.Println(fp, info.Name(), p)
+			serviceConfig := &Service{}
+			targets[p] = serviceConfig
+			return load(fp, &serviceConfig)
+		}
+		return nil
+	})
 }
 
 // Load load config from a file
@@ -82,5 +85,9 @@ func load(configFile string, target interface{}) error {
 	if err != nil {
 		return err
 	}
-	return yaml.Unmarshal(configBytes, target)
+	yamlErr := yaml.Unmarshal(configBytes, target)
+	if yamlErr != nil {
+		return errors.New("could not unmarshal yaml file " + configFile + " : " + yamlErr.Error())
+	}
+	return nil
 }
