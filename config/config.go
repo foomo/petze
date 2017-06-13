@@ -45,7 +45,7 @@ type Call struct {
 type Service struct {
 	ID       string
 	Endpoint string
-	Interval int64
+	Interval time.Duration
 	Session  []Call
 }
 
