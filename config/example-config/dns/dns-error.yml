@@ -1,2 +1,2 @@
 endpoint: https://www.ca-not-resolve.this/
-interval: 1
+interval: 100m

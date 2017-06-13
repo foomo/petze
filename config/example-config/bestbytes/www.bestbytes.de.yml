@@ -1,6 +1,6 @@
 ---
 endpoint: http://www.bestbytes.de/
-interval: 3
+interval: 1m
 maxruntime: 100
 session:
   - uri: /

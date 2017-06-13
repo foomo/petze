@@ -1,2 +1,2 @@
 endpoint: http://jan:jan@127.0.0.1:8888/status
-interval: 300
+interval: 100m
