@@ -47,7 +47,7 @@ Any other files with a .yml suffix will be treated as service configurations. It
 ```yaml
 ---
 endpoint: http://www.bestbytes.de
-interval: 3
+interval: 5m
 # run requests in a session, with cookies
 session:
   - uri: "/"
@@ -73,7 +73,8 @@ session:
       - header:
           "X-Test": "foo"
       - data:
-        "[0].product.images":
+        # this is a json path expression
+        "$[0].product.images+":
         	min: 1
   - uri: "/another/path"
     check:
