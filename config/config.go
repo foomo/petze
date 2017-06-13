@@ -7,6 +7,10 @@ import (
 	"time"
 )
 
+const (
+	ContentTypeJSON = "application/json"
+)
+
 const serverConfigFile = "petze.yml"
 
 type Expect struct {
