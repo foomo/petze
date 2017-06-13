@@ -2,30 +2,47 @@ package config
 
 import (
 	"errors"
-	"io/ioutil"
-	"os"
-	"path"
-
-	"path/filepath"
-
-	"strings"
-
-	yaml "gopkg.in/yaml.v1"
+	"fmt"
+	"net/url"
+	"time"
 )
 
 const serverConfigFile = "petze.yml"
 
+type Expect struct {
+	Max      *int64
+	Min      *int64
+	Count    *int64
+	Contains string
+	Equals   interface{}
+}
+
 type Check struct {
-	OK bool
+	Comment     string
+	Data        map[string]Expect
+	Goquery     map[string]Expect `yaml:"goquery"`
+	Header      map[string][]string
+	Duration    time.Duration
+	StatusCode  int64
+	ContentType string `yaml:"content-type"`
+}
+
+type Call struct {
+	URI         string
+	URL         string
+	Method      string
+	Data        interface{}
+	ContentType string `yaml:"content-type"`
+	Check       []Check
+	Header      map[string][]string
 }
 
 // Service a service to monitor
 type Service struct {
-	Endpoint   string
-	ID         string
-	Interval   int
-	MaxRuntime int
-	Checks     []Check
+	ID       string
+	Endpoint string
+	Interval int64
+	Session  []Call
 }
 
 type Server struct {
@@ -38,56 +55,38 @@ type Server struct {
 	}
 }
 
-func LoadServices(configDir string) (services map[string]*Service, err error) {
-	services = make(map[string]*Service)
-	errLoadServices := loadServicesFromDir(configDir, services)
-	if errLoadServices != nil {
-		err = errors.New("could not load service configurations from config dir : " + configDir + ",  : " + errLoadServices.Error())
+func (s *Service) GetURL() (u *url.URL, e error) {
+	return url.Parse(s.Endpoint)
+}
+
+func (s *Service) IsValid() (valid bool, err error) {
+	valid = false
+	_, errURL := s.GetURL()
+	if errURL != nil {
+
+		err = errors.New("endpoint is invalid: " + errURL.Error())
 		return
 	}
-	for id, service := range services {
-		service.ID = id
-		if service.MaxRuntime == 0 {
-			service.MaxRuntime = 1000
-		}
-		if service.Interval == 0 {
-			service.Interval = 60
+	for callIndex, call := range s.Session {
+		_, callErr := call.IsValid()
+		if callErr != nil {
+			err = errors.New(fmt.Sprint("invalid call in session @", callIndex, " : ", callErr))
+			return
 		}
 	}
-	return services, nil
+	valid = true
+	return
+}
+func (c *Call) GetURL() (u *url.URL, e error) {
+	return url.Parse(c.URI)
 }
 
-func LoadServer(configDir string) (server *Server, err error) {
-	server = &Server{}
-	return server, load(path.Join(configDir, serverConfigFile), &server)
-}
-
-func loadServicesFromDir(configDir string, targets map[string]*Service) error {
-	absoluteConfigDir, errAbsoluteConfigDir := filepath.Abs(configDir)
-	if errAbsoluteConfigDir != nil {
-		return errAbsoluteConfigDir
+func (c *Call) IsValid() (valid bool, err error) {
+	valid = true
+	_, errURL := c.GetURL()
+	if errURL != nil {
+		err = errors.New("invalid uri " + c.URI + " : " + errURL.Error())
+		return
 	}
-	return filepath.Walk(absoluteConfigDir, func(fp string, info os.FileInfo, err error) error {
-		if !info.IsDir() && !strings.HasPrefix(info.Name(), ".") && strings.HasSuffix(fp, ".yml") {
-			p := strings.TrimSuffix(strings.TrimPrefix(fp, absoluteConfigDir+string(os.PathSeparator)), ".yml")
-			// fmt.Println(fp, info.Name(), p)
-			serviceConfig := &Service{}
-			targets[p] = serviceConfig
-			return load(fp, &serviceConfig)
-		}
-		return nil
-	})
-}
-
-// Load load config from a file
-func load(configFile string, target interface{}) error {
-	configBytes, err := ioutil.ReadFile(configFile)
-	if err != nil {
-		return err
-	}
-	yamlErr := yaml.Unmarshal(configBytes, target)
-	if yamlErr != nil {
-		return errors.New("could not unmarshal yaml file " + configFile + " : " + yamlErr.Error())
-	}
-	return nil
+	return
 }
