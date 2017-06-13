@@ -138,7 +138,7 @@ func (w *Watcher) watchLoop(chanResult chan Result) {
 		r := watch(w.service)
 		if w.active {
 			chanResult <- *r
-			time.Sleep(w.service.Interval)
+			time.Sleep(time.Second * time.Duration(w.service.Interval))
 		}
 	}
 }
