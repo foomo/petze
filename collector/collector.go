@@ -1,10 +1,9 @@
 package collector
 
 import (
+	"encoding/json"
 	"log"
 	"time"
-
-	"encoding/json"
 
 	"fmt"
 
