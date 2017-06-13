@@ -21,7 +21,6 @@ func jsonReply(data interface{}, w http.ResponseWriter) error {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(jsonBytes)
-	log.Println("sent json reply:", len(jsonBytes))
 	return nil
 }
 
@@ -52,16 +51,14 @@ type server struct {
 	collector *collector.Collector
 }
 
-func newServer(servicesConfigfile string, peopleConfigfile string) (s *server, err error) {
-	coll, err := collector.NewCollector(servicesConfigfile, peopleConfigfile)
+func newServer(servicesConfigfile string) (s *server, err error) {
+	coll, err := collector.NewCollector(servicesConfigfile)
 	s = &server{
 		router:    httprouter.New(),
 		collector: coll,
 	}
 	s.router.GET("/services", s.GETServices)
 	s.router.GET("/status", s.GETStatus)
-	s.router.GET("/alerts", s.GETAlerts)
-	s.router.POST("/user-token/:user", s.POSTUserToken)
 	return s, nil
 }
 
@@ -72,7 +69,7 @@ type basicAuthHandler struct {
 
 func newBasicAuthHandler(server *server, htpasswordFile string) (ba *basicAuthHandler) {
 	secretProvider := auth.HtpasswdFileProvider(htpasswordFile)
-	authenticator := auth.NewBasicAuthenticator("dumpster", secretProvider)
+	authenticator := auth.NewBasicAuthenticator("petze", secretProvider)
 	return &basicAuthHandler{
 		server:        server,
 		authenticator: authenticator,
@@ -111,8 +108,8 @@ func getTLSConfig() *tls.Config {
 }
 
 // Run as a server
-func Run(c *config.Server, servicesConfigfile string, peopleConfigfile string) error {
-	s, err := newServer(servicesConfigfile, peopleConfigfile)
+func Run(c *config.Server, servicesConfigfile string) error {
+	s, err := newServer(servicesConfigfile)
 	if err != nil {
 		return err
 	}
@@ -129,7 +126,7 @@ func Run(c *config.Server, servicesConfigfile string, peopleConfigfile string) e
 		go func() {
 			log.Println("tls is configured: ", c.TLS)
 			tlsServer := &http.Server{
-				Addr:      c.Address,
+				Addr:      c.TLS.Address,
 				Handler:   ba,
 				TLSConfig: getTLSConfig(),
 			}
