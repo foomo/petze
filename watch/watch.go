@@ -31,6 +31,7 @@ type ErrorType string
 const (
 	ErrorInvalidEndpoint           ErrorType = "endpointInvalid"
 	ErrorTypeServerTooSlow                   = "serverTooSlow"
+	ErrorTypeNotImplemented                  = "notImplemented"
 	ErrorTypeUnknownError                    = "unknownError"
 	ErrorTypeClientError                     = "clientError"
 	ErrorTypeDNS                             = "dns"
@@ -44,6 +45,7 @@ const (
 	ErrorTypeUnexpectedContentType           = "unexpectedContentType"
 	ErrorTypeSessionFail                     = "sessionFail"
 	ErrorTypeGoQueryMismatch                 = "goqueryMismatch"
+	ErrorTypeDataMismatch                    = "dataMismatch"
 )
 
 type WarningType string
