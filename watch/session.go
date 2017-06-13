@@ -67,7 +67,14 @@ func runSession(service *config.Service, r *Result, client *http.Client) error {
 		duration := time.Since(start)
 
 		for _, check := range call.Check {
-			errCheck := checkResponse(r, call, response, check, duration)
+			ctx := &ResponseContext{
+				result:   r,
+				response: response,
+				check:    check,
+				call:     call,
+				duration: duration,
+			}
+			errCheck := checkResponse(ctx)
 			if errCheck != nil {
 				return errCheck
 			}
@@ -77,44 +84,50 @@ func runSession(service *config.Service, r *Result, client *http.Client) error {
 	return nil
 }
 
-func checkResponse(r *Result, call config.Call, response *http.Response, chk config.Check, callDuration time.Duration) error {
-	//	log.Println("checking response", chk)
+type ResponseContext struct {
+	result   *Result
+	response *http.Response
+	check    config.Check
+	call     config.Call
+	duration time.Duration
+}
 
+func checkResponse(ctx *ResponseContext) error {
 	addError := func(err string, t ErrorType) {
-		r.addError(errors.New(err), t, chk.Comment)
+		ctx.result.addError(errors.New(err), t, ctx.check.Comment)
 	}
 	switch true {
-	case chk.Duration > 0:
-		if callDuration > chk.Duration {
-			addError(fmt.Sprint("call duration ", callDuration, " exceeded ", chk.Duration), ErrorTypeServerTooSlow)
+	case ctx.check.Duration > 0:
+		if ctx.duration > ctx.check.Duration {
+			addError(fmt.Sprint("call duration ", ctx.duration, " exceeded ", ctx.check.Duration), ErrorTypeServerTooSlow)
 		}
-	case chk.Goquery != nil:
+	case ctx.check.Goquery != nil:
 		// go query
-		doc, errDoc := goquery.NewDocumentFromResponse(response)
+		doc, errDoc := goquery.NewDocumentFromResponse(ctx.response)
 		if errDoc != nil {
 			return errDoc
 		}
-		for selector, expect := range chk.Goquery {
+		for selector, expect := range ctx.check.Goquery {
 			ok, info := check.Goquery(doc, selector, expect)
 			if !ok {
 				//log.Println("no match", selector, expect)
 				addError(info, ErrorTypeGoQueryMismatch)
 			}
 		}
-	case chk.Data != nil:
+	case ctx.check.Data != nil:
 		contentType := config.ContentTypeJSON
-		if call.ContentType != "" {
-			contentType = call.ContentType
+		if ctx.call.ContentType != "" {
+			contentType = ctx.call.ContentType
 		}
-		if chk.ContentType != "" {
-			contentType = chk.ContentType
+		if ctx.check.ContentType != "" {
+			contentType = ctx.check.ContentType
 		}
 
-		dataBytes, errDataBytes := ioutil.ReadAll(response.Body)
+		dataBytes, errDataBytes := ioutil.ReadAll(ctx.response.Body)
 		if errDataBytes != nil {
 			return errors.New("could not read data from response: " + errDataBytes.Error())
 		}
-		for selector, expect := range chk.Data {
+		for selector, expect := range ctx.check.Data {
 			switch contentType {
 			case config.ContentTypeJSON:
 				ok, info := check.JSONPath(dataBytes, selector, expect)
@@ -126,10 +139,10 @@ func checkResponse(r *Result, call config.Call, response *http.Response, chk con
 				addError("data contentType: "+contentType+" is not supported (yet?)", ErrorTypeNotImplemented)
 			}
 		}
-	case chk.ContentType != "":
-		contentType := response.Header.Get("Content-Type")
-		if contentType != chk.ContentType {
-			addError("unexpected Content-Type: \""+contentType+"\", expected: \""+chk.ContentType+"\"", ErrorTypeUnexpectedContentType)
+	case ctx.check.ContentType != "":
+		contentType := ctx.response.Header.Get("Content-Type")
+		if contentType != ctx.check.ContentType {
+			addError("unexpected Content-Type: \""+contentType+"\", expected: \""+ctx.check.ContentType+"\"", ErrorTypeUnexpectedContentType)
 		}
 	default:
 		log.Println("what to check here !?")
