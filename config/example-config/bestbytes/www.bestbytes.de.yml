@@ -2,3 +2,7 @@
 endpoint: http://www.bestbytes.de/
 interval: 3
 maxruntime: 100
+session:
+  - uri: /
+    check:
+      - duration: 100ms
