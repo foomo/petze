@@ -10,6 +10,7 @@ import (
 )
 
 func JSONPath(jsonBytes []byte, selector string, expect config.Expect) (ok bool, info string) {
+	fmt.Println("json path on", string(jsonBytes))
 	info = "check not implemented"
 
 	paths, errParsePaths := jsonpath.ParsePaths(selector)
@@ -26,13 +27,18 @@ func JSONPath(jsonBytes []byte, selector string, expect config.Expect) (ok bool,
 
 	result, evalOK := eval.Next()
 	if !evalOK {
-		info = "no results for json path: " + selector
+		info = "could not eval jsonpath: " + selector
+		return
+	}
+
+	if len(result.Value) == 0 {
+		info = "no result for " + selector
 		return
 	}
 
 	json, jsonErr := gabs.ParseJSON(result.Value)
 	if jsonErr != nil {
-		info = "could not parse json: " + jsonErr.Error()
+		info = "could not parse json: " + jsonErr.Error() + " " + string(result.Value)
 		return
 	}
 
