@@ -2,8 +2,11 @@ package collector
 
 import (
 	"log"
-	"os"
 	"time"
+
+	"encoding/json"
+
+	"fmt"
 
 	"github.com/foomo/petze/config"
 	"github.com/foomo/petze/watch"
@@ -11,28 +14,24 @@ import (
 
 // Collector collects stats on services
 type Collector struct {
-	servicesConfigfile string
-	peopleConfigfile   string
-	chanPeople         chan map[string]*config.Person
-	chanServices       chan map[string]*config.Service
-	watchers           map[string]*watch.Watcher
-	results            map[string][]*watch.Result
-	services           map[string]*config.Service
-	alerter            *alerter
+	servicesConfigDir string
+	chanServices      chan map[string]*config.Service
+	chanGetResults    chan map[string][]watch.Result
+	watchers          map[string]*watch.Watcher
+	//	results           map[string][]*watch.Result
+	services map[string]*config.Service
 }
 
 // NewCollector construct a collector - it will watch its config files for changes
-func NewCollector(servicesConfigfile string, peopleConfigfile string) (c *Collector, err error) {
+func NewCollector(servicesConfigDir string) (c *Collector, err error) {
 	c = &Collector{
-		servicesConfigfile: servicesConfigfile,
-		services:           make(map[string]*config.Service),
-		peopleConfigfile:   peopleConfigfile,
-		chanPeople:         make(chan map[string]*config.Person),
-		chanServices:       make(chan map[string]*config.Service),
-		watchers:           make(map[string]*watch.Watcher),
-		results:            make(map[string][]*watch.Result),
+		servicesConfigDir: servicesConfigDir,
+		services:          make(map[string]*config.Service),
+		chanServices:      make(chan map[string]*config.Service),
+		chanGetResults:    make(chan map[string][]watch.Result),
+		watchers:          make(map[string]*watch.Watcher),
+		//results:           make(map[string][]*watch.Result),
 	}
-	c.alerter = newAlerter()
 	go c.collect()
 	go c.configWatch()
 	return c, nil
@@ -42,15 +41,17 @@ const maxResults = 1000
 
 func (c *Collector) collect() {
 
-	people := make(map[string]*config.Person)
-	//services := make(map[string]*config.Service)
-	chanResult := make(chan *watch.Result)
+	chanResult := make(chan watch.Result)
+	results := map[string][]watch.Result{}
 
 	for {
 		select {
-		case newPeople := <-c.chanPeople:
-			people = newPeople
-			//log.Println("updated people", people)
+		case <-c.chanGetResults:
+			resultsCopy := map[string][]watch.Result{}
+			for name, results := range results {
+				resultsCopy[name] = results
+			}
+			c.chanGetResults <- resultsCopy
 		case newServices := <-c.chanServices:
 			c.services = newServices
 			// stop old watchers
@@ -61,88 +62,73 @@ func (c *Collector) collect() {
 			// setup new watches
 			for serviceID, service := range c.services {
 				c.watchers[serviceID] = watch.Watch(service, chanResult)
-				_, ok := c.results[serviceID]
+				_, ok := results[serviceID]
 				if !ok {
-					c.results[serviceID] = []*watch.Result{}
+					results[serviceID] = []watch.Result{}
 				}
 			}
 			// clean up results
-			for possiblyUnknownServiceID := range c.results {
+			for possiblyUnknownServiceID := range results {
 				_, ok := c.watchers[possiblyUnknownServiceID]
 				if !ok {
 					// clean up results
-					delete(c.results, possiblyUnknownServiceID)
+					delete(results, possiblyUnknownServiceID)
 				}
 			}
 		case result := <-chanResult:
-			results, ok := c.results[result.ID]
+			serviceResults, ok := results[result.ID]
 			if ok {
-				results = append(results, result)
-				if len(results) > maxResults {
-					results = results[len(results)-maxResults:]
+				serviceResults = append(serviceResults, result)
+				if len(serviceResults) > maxResults {
+					serviceResults = serviceResults[len(serviceResults)-maxResults:]
 				}
-				c.results[result.ID] = results
+				results[result.ID] = serviceResults
 			}
-			c.alerter.checkServices(c.services, c.results, people)
-		case <-time.After(time.Second * 10):
-			c.alerter.checkServices(c.services, c.results, people)
 		}
 	}
 }
 
 // GetResults get current results
-func (c *Collector) GetResults() map[string][]*watch.Result {
-	return c.results
+func (c *Collector) GetResults() map[string][]watch.Result {
+	c.chanGetResults <- nil
+	return <-c.chanGetResults
 }
 
-// GetAlerts get current alerts
-func (c *Collector) GetAlerts() map[string]map[string]*Alert {
-	return runChecks(c.services, c.results)
-}
-
-func getLastChange(filename string) int64 {
-	c := int64(0)
-	info, err := os.Stat(filename)
-	if err == nil {
-		c = info.ModTime().UnixNano()
+func hashServiceConfig(config map[string]*config.Service) (hash string) {
+	hash = "invalid config"
+	jsonBytes, errJSON := json.Marshal(config)
+	if errJSON == nil {
+		hash = string(jsonBytes)
 	}
-	return c
+	return hash
 }
 
 func (c *Collector) configWatch() {
-	serviceLastChange := int64(0)
-	peopleLastChange := int64(0)
 	for {
-		newServiceLastChange := getLastChange(c.servicesConfigfile)
-		newPeopleLastChange := getLastChange(c.peopleConfigfile)
-		if newPeopleLastChange > peopleLastChange {
-			c.updatePeople()
-			peopleLastChange = newPeopleLastChange
+		services, errServices := config.LoadServices(c.servicesConfigDir)
+		if errServices != nil {
+			log.Println("could not read configuration:", errServices)
 		}
-		if newServiceLastChange > serviceLastChange {
-			c.updateServices()
-			serviceLastChange = newServiceLastChange
+		if errServices == nil {
+			newHash := hashServiceConfig(services)
+			oldHash := hashServiceConfig(c.services)
+			if newHash != oldHash {
+				fmt.Println("there was a successful configuration update")
+				fmt.Println(oldHash)
+				fmt.Println(newHash)
+				c.updateServices()
+			}
 		}
-		time.Sleep(time.Second)
+		time.Sleep(10 * time.Second)
 	}
-}
-
-func (c *Collector) updatePeople() error {
-	people, err := config.LoadPeople(c.peopleConfigfile)
-	if err == nil {
-		c.chanPeople <- people
-	} else {
-		log.Println("could not update people", err)
-	}
-	return err
 }
 
 func (c *Collector) updateServices() error {
-	services, err := config.LoadServices(c.servicesConfigfile)
+	services, err := config.LoadServices(c.servicesConfigDir)
 	if err == nil {
 		c.chanServices <- services
 	} else {
-		log.Println("could not update services", err)
+		log.Println("could not update services:", err)
 	}
 	return err
 }
