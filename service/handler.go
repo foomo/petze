@@ -1,27 +1,46 @@
 package service
 
 import (
-	"io/ioutil"
-	"log"
 	"net/http"
+	"sort"
+	"strconv"
 
+	"github.com/foomo/petze/watch"
 	"github.com/julienschmidt/httprouter"
 )
 
+type ServiceStatus struct {
+	ID      string         `json:"id"`
+	Results []watch.Result `json:"results"`
+}
+
 func (s *server) GETServices(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	//fmt.Println(s.collector.UpdatePeople(), s.collector.UpdateServices())
 	jsonReply("GETCollectorConfigServices", w)
 }
 
 func (s *server) GETStatus(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	jsonReply(s.collector.GetResults(), w)
-}
+	limitInt := 1000
+	limitIntCandidate, err := strconv.Atoi(r.FormValue("limit"))
+	if err == nil {
+		limitInt = limitIntCandidate
+	}
+	status := []ServiceStatus{}
 
-func (s *server) GETAlerts(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	jsonReply(s.collector.GetAlerts(), w)
-}
-
-func (s *server) POSTUserToken(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	body, _ := ioutil.ReadAll(r.Body)
-	log.Println("post user token", ps, string(body))
+	serviceResults := s.collector.GetResults()
+	serviceIDs := []string{}
+	for serviceID := range serviceResults {
+		serviceIDs = append(serviceIDs, serviceID)
+	}
+	sort.Strings(serviceIDs)
+	for _, serviceID := range serviceIDs {
+		results := serviceResults[serviceID]
+		if len(results) > limitInt {
+			results = results[len(results)-limitInt:]
+		}
+		status = append(status, ServiceStatus{
+			ID:      serviceID,
+			Results: results,
+		})
+	}
+	jsonReply(status, w)
 }
