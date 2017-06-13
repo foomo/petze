@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/http/cookiejar"
 	"strings"
 	"time"
 
@@ -40,6 +41,9 @@ const (
 	ErrorTypeTLSUnknownAuthority             = "tlsUnknownAutority"
 	ErrorTypeWrongHTTPStatusCode             = "wrongHTTPStatus"
 	ErrorTypeCertificateIsExpiring           = "certificateIsExpiring"
+	ErrorTypeUnexpectedContentType           = "unexpectedContentType"
+	ErrorTypeSessionFail                     = "sessionFail"
+	ErrorTypeGoQueryMismatch                 = "goqueryMismatch"
 )
 
 type WarningType string
@@ -49,23 +53,22 @@ const (
 )
 
 type Error struct {
-	Error string
-	Type  ErrorType
+	Error   string    `json:"error"`
+	Type    ErrorType `json:"type"`
+	Comment string    `json:"comment,omitempty"`
 }
 
 type Warning struct {
-	Warning string
-	Type    WarningType
+	Warning string      `json:"warning"`
+	Type    WarningType `json:"type"`
 }
 
 type Result struct {
-	ID         string        `json:"id"`
-	Errors     []Error       `json:"errors"`
-	Warnings   []Warning     `json:"warnings"`
-	Timeout    bool          `json:"timeout"`
-	Timestamp  time.Time     `json:"timestamp"`
-	RunTime    time.Duration `json:"runTime"`
-	StatusCode int           `json:"statusCode"`
+	ID        string    `json:"id"`
+	Errors    []Error   `json:"errors"`
+	Warnings  []Warning `json:"warnings"`
+	Timeout   bool      `json:"timeout"`
+	Timestamp time.Time `json:"timestamp"`
 }
 
 func NewResult(id string) *Result {
@@ -76,14 +79,15 @@ func NewResult(id string) *Result {
 	}
 }
 
-func (r *Result) addError(e error, t ErrorType) {
-	r.Errors = addError(r.Errors, e, t)
+func (r *Result) addError(e error, t ErrorType, comment string) {
+	r.Errors = addError(r.Errors, e, t, comment)
 }
 
-func addError(errors []Error, err error, t ErrorType) []Error {
+func addError(errors []Error, err error, t ErrorType, comment string) []Error {
 	return append(errors, Error{
-		Error: err.Error(),
-		Type:  t,
+		Error:   err.Error(),
+		Type:    t,
+		Comment: comment,
 	})
 }
 
@@ -97,6 +101,7 @@ func addWarning(warnings []Warning, warning string, t WarningType) []Warning {
 type dialerErrRecorder struct {
 	warnings                   []Warning
 	errors                     []Error
+	unknownErr                 error
 	err                        net.Error
 	dnsError                   net.Error
 	dnsConfigError             net.Error
@@ -112,7 +117,7 @@ type Watcher struct {
 }
 
 // Watch create a watcher and start watching
-func Watch(service *config.Service, chanResult chan *Result) *Watcher {
+func Watch(service *config.Service, chanResult chan Result) *Watcher {
 	w := &Watcher{
 		active:  true,
 		service: service,
@@ -126,11 +131,11 @@ func (w *Watcher) Stop() {
 	w.active = false
 }
 
-func (w *Watcher) watchLoop(chanResult chan *Result) {
+func (w *Watcher) watchLoop(chanResult chan Result) {
 	for w.active {
 		r := watch(w.service)
 		if w.active {
-			chanResult <- r
+			chanResult <- *r
 			time.Sleep(time.Second * time.Duration(w.service.Interval))
 		}
 	}
@@ -155,7 +160,7 @@ func getClientAndDialErrRecorder() (client *http.Client, errRecorder *dialerErrR
 				durationUntilExpiry := cert.NotAfter.Sub(time.Now())
 				if durationUntilExpiry < time.Hour*24 {
 					// well in less than 24 h is worth an error
-					errRecorder.errors = addError(errRecorder.errors, errors.New(fmt.Sprint("cert CN=\"", cert.Subject.CommonName, "\" is expiring in less than 24h: ", cert.NotAfter, ", left: ", durationUntilExpiry)), ErrorTypeCertificateIsExpiring)
+					errRecorder.errors = addError(errRecorder.errors, errors.New(fmt.Sprint("cert CN=\"", cert.Subject.CommonName, "\" is expiring in less than 24h: ", cert.NotAfter, ", left: ", durationUntilExpiry)), ErrorTypeCertificateIsExpiring, "")
 				} else if durationUntilExpiry < time.Hour*24*14 {
 					// we will start issuing warnings two weeks before a cert expires
 					errRecorder.warnings = addWarning(errRecorder.warnings, fmt.Sprint("cert CN=\"", cert.Subject.CommonName, "\" expires on: ", cert.NotAfter, ", left: ", durationUntilExpiry), WarningTypeCertificateWillExpire)
@@ -163,6 +168,7 @@ func getClientAndDialErrRecorder() (client *http.Client, errRecorder *dialerErrR
 			}
 			conn = tlsConn
 		} else {
+
 			switch reflect.TypeOf(tlsErr) {
 			case typeX509UnknownAuthorityError:
 				unknownAuthorityError := tlsErr.(x509.UnknownAuthorityError)
@@ -196,8 +202,7 @@ func getClientAndDialErrRecorder() (client *http.Client, errRecorder *dialerErrR
 					log.Println("dns error")
 					errRecorder.dnsError = opError.Err.(net.Error)
 				default:
-					log.Println("misc error", reflect.TypeOf(opError.Err), opError.Err)
-					errRecorder.err = opError.Err.(net.Error)
+					errRecorder.unknownErr = opError.Err
 				}
 			default:
 				log.Println("again some general bullshit", err)
@@ -224,80 +229,84 @@ func watch(service *config.Service) (r *Result) {
 	// parsing, the endpoint
 	request, err := http.NewRequest("GET", service.Endpoint, nil)
 	if err != nil {
-		r.addError(err, ErrorInvalidEndpoint)
+		r.addError(err, ErrorInvalidEndpoint, "")
 		return r
 	}
-	// my opersonal dns error check
+	// my personal dns error check
 	if len(request.Host) > 0 {
 		host := request.Host
 		parts := strings.Split(host, ":")
 		if len(parts) > 1 {
 			host, _, err = net.SplitHostPort(request.Host)
 			if err != nil {
-				r.addError(err, ErrorInvalidEndpoint)
+				r.addError(err, ErrorInvalidEndpoint, "")
 				return
 			}
 		}
 		_, lookupErr := net.LookupIP(host)
 		if lookupErr != nil {
-			r.addError(lookupErr, ErrorTypeDNS)
+			r.addError(lookupErr, ErrorTypeDNS, "")
 			return
 		}
 	}
 
-	// i am explicitly not calling http.Get, because it does 30x handling, that
-	// I do not want
+	// i am explicitly not calling http.Get, because it does 30x handling and i do not want that
 	client, errRecorder := getClientAndDialErrRecorder()
 	response, err := client.Do(request)
 	r.Errors = append(r.Errors, errRecorder.errors...)
 	r.Warnings = append(r.Warnings, errRecorder.warnings...)
-	r.RunTime = time.Since(r.Timestamp)
+	//r.RunTime = time.Since(r.Timestamp)
 
 	if response != nil && response.Body != nil {
 		// always close the body
 		response.Body.Close()
 	}
-	if err != nil {
 
+	if err != nil {
+		// sth. went wrong
+		r.addError(err, ErrorTypeClientError, "")
 		var netErr net.Error
 		switch true {
 		case errRecorder.tlsHostnameError != nil:
-			r.addError(errRecorder.tlsHostnameError, ErrorTypeTLSHostNameError)
+			r.addError(errRecorder.tlsHostnameError, ErrorTypeTLSHostNameError, "")
 		case errRecorder.tlsSystemRootsError != nil:
-			r.addError(errRecorder.tlsSystemRootsError, ErrorTypeTLSSystemRootsError)
+			r.addError(errRecorder.tlsSystemRootsError, ErrorTypeTLSSystemRootsError, "")
 		case errRecorder.tlsUnknownAuthorityError != nil:
-			r.addError(errRecorder.tlsUnknownAuthorityError, ErrorTypeTLSUnknownAuthority)
+			r.addError(errRecorder.tlsUnknownAuthorityError, ErrorTypeTLSUnknownAuthority, "")
 		case errRecorder.tlsCertificateInvalidError != nil:
-			r.addError(errRecorder.tlsCertificateInvalidError, ErrorTypeTLSCertificateInvalid)
+			r.addError(errRecorder.tlsCertificateInvalidError, ErrorTypeTLSCertificateInvalid, "")
+		case errRecorder.unknownErr != nil:
+			r.addError(errRecorder.unknownErr, ErrorTypeUnknownError, "")
 		case errRecorder.dnsConfigError != nil:
 			netErr = errRecorder.dnsConfigError
-			r.addError(errRecorder.dnsConfigError, ErrorTypeDNSConfig)
+			r.addError(errRecorder.dnsConfigError, ErrorTypeDNSConfig, "")
 		case errRecorder.dnsError != nil:
 			netErr = errRecorder.dnsError
-			r.addError(errRecorder.dnsError, ErrorTypeDNS)
+			r.addError(errRecorder.dnsError, ErrorTypeDNS, "")
 		case errRecorder.err != nil:
 			netErr = errRecorder.err
-			r.addError(errRecorder.err, ErrorTypeUnknownError)
+			r.addError(errRecorder.err, ErrorTypeUnknownError, "")
 		}
 		//log.Println("service", service.ID, err, "errRecorder dns:", errRecorder.dnsError, ", dnsConfig", errRecorder.dnsConfigError, ", err:", errRecorder.err, ", tls cert invalid:", errRecorder.tlsCertificateInvalidError)
 		if netErr != nil {
 			r.Timeout = netErr.Timeout()
 			//r.ErrorIsTemporary = netErr.Temporary()
 		}
-		if err != nil {
-			r.addError(err, ErrorTypeClientError)
-		}
 		return
 	}
-	runTimeMilliseconds := r.RunTime.Nanoseconds() / 1000000
-	maxRuntime := (int64(service.MaxRuntime) * time.Millisecond.Nanoseconds()) / 1000000
-	//log.Println("run time >>>>>>>>>>>", service.ID, runTimeMilliseconds, maxRuntime)
-	if runTimeMilliseconds > maxRuntime {
-		r.addError(errors.New(fmt.Sprint("response time too slow:", runTimeMilliseconds, ", should not be more than:", maxRuntime)), ErrorTypeServerTooSlow)
+
+	cookieJar, _ := cookiejar.New(nil)
+	client.Jar = cookieJar
+	errSession := runSession(service, r, client)
+	if errSession != nil {
+		log.Println("session error", errSession)
+		r.addError(errSession, ErrorTypeSessionFail, "")
 	}
-	r.StatusCode = response.StatusCode
+
+	// r.addError(errors.New(fmt.Sprint("response time too slow:", runTimeMilliseconds, ", should not be more than:", maxRuntime)), ErrorTypeServerTooSlow)
+	//r.StatusCode = response.StatusCode
 	if response.StatusCode != http.StatusOK {
-		r.addError(errors.New(fmt.Sprint("unexpected status code: ", response.StatusCode)), ErrorTypeWrongHTTPStatusCode)
+		r.addError(errors.New(fmt.Sprint("unexpected status code: ", response.StatusCode)), ErrorTypeWrongHTTPStatusCode, "")
 	}
 	return
 }
