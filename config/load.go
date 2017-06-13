@@ -2,10 +2,12 @@ package config
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
+	"reflect"
 	"strings"
 
 	yaml "gopkg.in/yaml.v1"
@@ -43,7 +45,16 @@ func loadServicesFromDir(configDir string, targets map[string]*Service) error {
 			// fmt.Println(fp, info.Name(), p)
 			serviceConfig := &Service{}
 			targets[p] = serviceConfig
-			return load(fp, &serviceConfig)
+			loadErr := load(fp, &serviceConfig)
+			if loadErr != nil {
+				return loadErr
+			}
+			for i, call := range serviceConfig.Session {
+				if call.Data != nil {
+					serviceConfig.Session[i].Data = fixYamlMapsForJSON(call.Data, 0)
+				}
+			}
+			return nil
 		}
 		return nil
 	})
@@ -60,4 +71,33 @@ func load(configFile string, target interface{}) error {
 		return errors.New("could not unmarshal yaml file " + configFile + " : " + yamlErr.Error())
 	}
 	return nil
+}
+
+func fixYamlMapsForJSON(source interface{}, level int) (target interface{}) {
+	refl := reflect.ValueOf(source)
+	switch refl.Type().String() {
+	case "map[interface {}]interface {}":
+		t := map[string]interface{}{}
+		fuckingSource := source.(map[interface{}]interface{})
+		// fmt.Println("mapping @", level, refl.Type().String())
+		for key, value := range fuckingSource {
+			// fmt.Println(key, "@", level)
+			t[fmt.Sprint(key)] = fixYamlMapsForJSON(value, level+1)
+		}
+		// fmt.Println("mapped")
+		// fmt.Println(fuckingSource)
+		// fmt.Println(t)
+		return t
+	case "[]interface {}":
+		// fmt.Println("mapping interface array @", level)
+		sArray := source.([]interface{})
+		tArray := make([]interface{}, len(sArray))
+		for i, element := range sArray {
+			tArray[i] = fixYamlMapsForJSON(element, level+1)
+		}
+		return tArray
+	default:
+		// fmt.Println("i am fine with", refl.Type().String(), source)
+		return source
+	}
 }
