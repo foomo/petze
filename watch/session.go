@@ -9,6 +9,14 @@ import (
 
 	"time"
 
+	"io/ioutil"
+
+	"io"
+
+	"encoding/json"
+
+	"bytes"
+
 	"github.com/PuerkitoBio/goquery"
 	"github.com/foomo/petze/check"
 	"github.com/foomo/petze/config"
@@ -34,7 +42,20 @@ func runSession(service *config.Service, r *Result, client *http.Client) error {
 		callURL.Path = uriURL.Path
 		callURL.RawQuery = uriURL.RawQuery
 
-		req, errNewRequest := http.NewRequest(http.MethodGet, callURL.String(), nil)
+		var body io.Reader
+		method := http.MethodGet
+		if call.Method != "" {
+			method = call.Method
+		}
+		if call.Data != nil {
+			dataBytes, errDataBytes := json.Marshal(call.Data)
+			if errDataBytes != nil {
+				return errors.New("could not encode data bytes: " + errDataBytes.Error())
+			}
+			body = bytes.NewBuffer(dataBytes)
+		}
+
+		req, errNewRequest := http.NewRequest(method, callURL.String(), body)
 		if errNewRequest != nil {
 			return errNewRequest
 		}
@@ -46,17 +67,18 @@ func runSession(service *config.Service, r *Result, client *http.Client) error {
 		duration := time.Since(start)
 
 		for _, check := range call.Check {
-			errCheck := checkResponse(r, response, check, duration)
+			errCheck := checkResponse(r, call, response, check, duration)
 			if errCheck != nil {
 				return errCheck
 			}
 		}
+
 	}
 	return nil
 }
 
-func checkResponse(r *Result, response *http.Response, chk config.Check, callDuration time.Duration) error {
-	log.Println("checking response", chk)
+func checkResponse(r *Result, call config.Call, response *http.Response, chk config.Check, callDuration time.Duration) error {
+	//	log.Println("checking response", chk)
 
 	addError := func(err string, t ErrorType) {
 		r.addError(errors.New(err), t, chk.Comment)
@@ -77,6 +99,31 @@ func checkResponse(r *Result, response *http.Response, chk config.Check, callDur
 			if !ok {
 				//log.Println("no match", selector, expect)
 				addError(info, ErrorTypeGoQueryMismatch)
+			}
+		}
+	case chk.Data != nil:
+		contentType := config.ContentTypeJSON
+		if call.ContentType != "" {
+			contentType = call.ContentType
+		}
+		if chk.ContentType != "" {
+			contentType = chk.ContentType
+		}
+
+		dataBytes, errDataBytes := ioutil.ReadAll(response.Body)
+		if errDataBytes != nil {
+			return errors.New("could not read data from response: " + errDataBytes.Error())
+		}
+		for selector, expect := range chk.Data {
+			switch contentType {
+			case config.ContentTypeJSON:
+				ok, info := check.JSONPath(dataBytes, selector, expect)
+				if !ok {
+					//log.Println("no match", selector, expect)
+					addError(info, ErrorTypeDataMismatch)
+				}
+			default:
+				addError("data contentType: "+contentType+" is not supported (yet?)", ErrorTypeNotImplemented)
 			}
 		}
 	case chk.ContentType != "":
