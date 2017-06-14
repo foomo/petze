@@ -68,8 +68,13 @@ type basicAuthHandler struct {
 }
 
 func newBasicAuthHandler(server *server, htpasswordFile string) (ba *basicAuthHandler) {
-	secretProvider := auth.HtpasswdFileProvider(htpasswordFile)
-	authenticator := auth.NewBasicAuthenticator("petze", secretProvider)
+	var authenticator *auth.BasicAuth
+
+	if htpasswordFile != "" {
+		secretProvider := auth.HtpasswdFileProvider(htpasswordFile)
+		authenticator = auth.NewBasicAuthenticator("petze", secretProvider)
+	}
+
 	return &basicAuthHandler{
 		server:        server,
 		authenticator: authenticator,
@@ -77,11 +82,15 @@ func newBasicAuthHandler(server *server, htpasswordFile string) (ba *basicAuthHa
 }
 
 func (ba *basicAuthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	user := ba.authenticator.CheckAuth(r)
-	if len(user) == 0 {
-		ba.authenticator.RequireAuth(w, r)
-		return
+
+	if ba.authenticator != nil {
+		user := ba.authenticator.CheckAuth(r)
+		if len(user) == 0 {
+			ba.authenticator.RequireAuth(w, r)
+			return
+		}
 	}
+
 	ba.server.router.ServeHTTP(w, r)
 }
 
@@ -114,14 +123,20 @@ func Run(c *config.Server, servicesConfigfile string) error {
 		return err
 	}
 	log.Println("starting petze server on: ", c.Address)
-	log.Println("  basic auth from: ", c.BasicAuthFile)
+
+	if c.BasicAuthFile != "" {
+		log.Println("\t using basic auth from: ", c.BasicAuthFile)
+	}
+
 	ba := newBasicAuthHandler(s, c.BasicAuthFile)
+
 	errorChan := make(chan (error))
 	if len(c.Address) > 0 {
 		go func() {
 			errorChan <- http.ListenAndServe(c.Address, ba)
 		}()
 	}
+
 	if c.TLS != nil {
 		go func() {
 			log.Println("tls is configured: ", c.TLS)
