@@ -10,7 +10,6 @@ import (
 )
 
 func JSONPath(jsonBytes []byte, selector string, expect config.Expect) (ok bool, info string) {
-	fmt.Println("json path on", string(jsonBytes))
 	info = "check not implemented"
 
 	paths, errParsePaths := jsonpath.ParsePaths(selector)
