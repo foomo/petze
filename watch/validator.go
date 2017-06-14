@@ -1,11 +1,11 @@
 package watch
 
 import (
-	"io/ioutil"
+	"fmt"
+	"github.com/PuerkitoBio/goquery"
 	"github.com/foomo/petze/check"
 	"github.com/foomo/petze/config"
-	"github.com/PuerkitoBio/goquery"
-	"fmt"
+	"io/ioutil"
 )
 
 type ValidatorFunc func(ctx *CheckContext) (errs []Error)
@@ -22,7 +22,7 @@ func ValidateJsonPath(ctx *CheckContext) (errs []Error) {
 
 		dataBytes, errDataBytes := ioutil.ReadAll(ctx.response.Body)
 		if errDataBytes != nil {
-			errs := append(errs, Error{Error: "could not read data from response: " + errDataBytes.Error() })
+			errs := append(errs, Error{Error: "could not read data from response: " + errDataBytes.Error()})
 			return errs
 		}
 

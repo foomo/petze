@@ -37,17 +37,17 @@ const (
 	ErrorTypeDNS                             = "dns"
 	ErrorTypeDNSConfig                       = "dnsConfig"
 	ErrorTypeTLSCertificateInvalid           = "tlsCertificateInvalid"
-	ErrorTypeTLSHostNameError      = "tlsHostNameError"
-	ErrorTypeTLSSystemRootsError   = "tlsSystemRootsError"
-	ErrorTypeTLSUnknownAuthority   = "tlsUnknownAutority"
-	ErrorTypeWrongHTTPStatusCode   = "wrongHTTPStatus"
-	ErrorTypeCertificateIsExpiring = "certificateIsExpiring"
-	ErrorTypeUnexpectedContentType = "unexpectedContentType"
-	ErrorTypeSessionFail           = "sessionFail"
-	ErrorTypeGoQueryMismatch       = "goqueryMismatch"
-	ErrorTypeGoQuery               = "goQueryGeneralError"
-	ErrorTypeDataMismatch          = "dataMismatch"
-	ErrorJsonPath                  = "jsonPathError"
+	ErrorTypeTLSHostNameError                = "tlsHostNameError"
+	ErrorTypeTLSSystemRootsError             = "tlsSystemRootsError"
+	ErrorTypeTLSUnknownAuthority             = "tlsUnknownAutority"
+	ErrorTypeWrongHTTPStatusCode             = "wrongHTTPStatus"
+	ErrorTypeCertificateIsExpiring           = "certificateIsExpiring"
+	ErrorTypeUnexpectedContentType           = "unexpectedContentType"
+	ErrorTypeSessionFail                     = "sessionFail"
+	ErrorTypeGoQueryMismatch                 = "goqueryMismatch"
+	ErrorTypeGoQuery                         = "goQueryGeneralError"
+	ErrorTypeDataMismatch                    = "dataMismatch"
+	ErrorJsonPath                            = "jsonPathError"
 )
 
 type WarningType string
@@ -68,11 +68,11 @@ type Warning struct {
 }
 
 type Result struct {
-	ID        string    `json:"id"`
-	Errors    []Error   `json:"errors"`
-	Warnings  []Warning `json:"warnings"`
-	Timeout   bool      `json:"timeout"`
-	Timestamp time.Time `json:"timestamp"`
+	ID        string        `json:"id"`
+	Errors    []Error       `json:"errors"`
+	Warnings  []Warning     `json:"warnings"`
+	Timeout   bool          `json:"timeout"`
+	Timestamp time.Time     `json:"timestamp"`
 	RunTime   time.Duration `json:"runtime"`
 }
 
