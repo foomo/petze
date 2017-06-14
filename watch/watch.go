@@ -45,6 +45,7 @@ const (
 	ErrorTypeUnexpectedContentType           = "unexpectedContentType"
 	ErrorTypeSessionFail                     = "sessionFail"
 	ErrorTypeGoQueryMismatch                 = "goqueryMismatch"
+	ErrorTypeGoQuerySyntax                	 = "goqueryMismatch"
 	ErrorTypeDataMismatch                    = "dataMismatch"
 )
 
@@ -138,7 +139,7 @@ func (w *Watcher) watchLoop(chanResult chan Result) {
 		r := watch(w.service)
 		if w.active {
 			chanResult <- *r
-			time.Sleep(time.Second * time.Duration(w.service.Interval))
+			time.Sleep(w.service.Interval)
 		}
 	}
 }

@@ -3,13 +3,10 @@ package watch
 import (
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 
 	"time"
-
-	"io/ioutil"
 
 	"io"
 
@@ -66,86 +63,67 @@ func runSession(service *config.Service, r *Result, client *http.Client) error {
 		}
 		duration := time.Since(start)
 
-		for _, check := range call.Check {
-			ctx := &ResponseContext{
-				result:   r,
+		for _, chk := range call.Check {
+			ctx := &CheckContext{
 				response: response,
-				check:    check,
+				check:    chk,
 				call:     call,
 				duration: duration,
 			}
-			errCheck := checkResponse(ctx)
-			if errCheck != nil {
-				return errCheck
-			}
+			r.Errors = checkResponse(ctx)
 		}
 
 	}
 	return nil
 }
 
-type ResponseContext struct {
-	result   *Result
+type CheckContext struct {
 	response *http.Response
 	check    config.Check
 	call     config.Call
 	duration time.Duration
 }
 
-func checkResponse(ctx *ResponseContext) error {
-	addError := func(err string, t ErrorType) {
-		ctx.result.addError(errors.New(err), t, ctx.check.Comment)
-	}
+func checkResponse(ctx *CheckContext) []Error {
+	errs := []Error{}
+
+	dataValidator := &ResponseDataValidator{}
+	dataValidator.Validate(ctx)
 	switch true {
 	case ctx.check.Duration > 0:
 		if ctx.duration > ctx.check.Duration {
-			addError(fmt.Sprint("call duration ", ctx.duration, " exceeded ", ctx.check.Duration), ErrorTypeServerTooSlow)
+			errs = append(errs, Error{
+				Error: fmt.Sprint("call duration ", ctx.duration, " exceeded ", ctx.check.Duration),
+				Type:  ErrorTypeServerTooSlow,
+			})
 		}
 	case ctx.check.Goquery != nil:
 		// go query
 		doc, errDoc := goquery.NewDocumentFromResponse(ctx.response)
 		if errDoc != nil {
-			return errDoc
-		}
-		for selector, expect := range ctx.check.Goquery {
-			ok, info := check.Goquery(doc, selector, expect)
-			if !ok {
-				//log.Println("no match", selector, expect)
-				addError(info, ErrorTypeGoQueryMismatch)
-			}
-		}
-	case ctx.check.Data != nil:
-		contentType := config.ContentTypeJSON
-		if ctx.call.ContentType != "" {
-			contentType = ctx.call.ContentType
-		}
-		if ctx.check.ContentType != "" {
-			contentType = ctx.check.ContentType
-		}
-
-		dataBytes, errDataBytes := ioutil.ReadAll(ctx.response.Body)
-		if errDataBytes != nil {
-			return errors.New("could not read data from response: " + errDataBytes.Error())
-		}
-		for selector, expect := range ctx.check.Data {
-			switch contentType {
-			case config.ContentTypeJSON:
-				ok, info := check.JSONPath(dataBytes, selector, expect)
+			errs = append(errs, Error{
+				Error: errDoc.Error(),
+				Type:  ErrorTypeGoQuerySyntax,
+			})
+		} else {
+			for selector, expect := range ctx.check.Goquery {
+				ok, info := check.Goquery(doc, selector, expect)
 				if !ok {
-					//log.Println("no match", selector, expect)
-					addError(info, ErrorTypeDataMismatch)
+					errs = append(errs, Error{
+						Error: info,
+						Type:  ErrorTypeGoQueryMismatch,
+					})
 				}
-			default:
-				addError("data contentType: "+contentType+" is not supported (yet?)", ErrorTypeNotImplemented)
 			}
 		}
 	case ctx.check.ContentType != "":
 		contentType := ctx.response.Header.Get("Content-Type")
 		if contentType != ctx.check.ContentType {
-			addError("unexpected Content-Type: \""+contentType+"\", expected: \""+ctx.check.ContentType+"\"", ErrorTypeUnexpectedContentType)
+			errs = append(errs, Error{
+				Error: "unexpected Content-Type: \"" + contentType + "\", expected: \"" + ctx.check.ContentType + "\"",
+				Type:  ErrorTypeUnexpectedContentType,
+			})
 		}
-	default:
-		log.Println("what to check here !?")
 	}
-	return nil
+	return errs
 }
