@@ -24,7 +24,7 @@ type Expect struct {
 type Check struct {
 	Comment     string
 	Data        map[string]Expect
-	Goquery     map[string]Expect `yaml:"goquery"`
+	Goquery     map[string]Expect
 	Header      map[string][]string
 	Duration    time.Duration
 	StatusCode  int64
@@ -52,7 +52,7 @@ type Service struct {
 type Server struct {
 	Address       string
 	BasicAuthFile string
-	TLS           *struct {
+	TLS *struct {
 		Address string
 		Cert    string
 		Key     string
