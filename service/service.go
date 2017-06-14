@@ -3,8 +3,6 @@ package service
 import (
 	"crypto/tls"
 	"encoding/json"
-	"errors"
-	"io/ioutil"
 	"log"
 	"net/http"
 
@@ -21,28 +19,6 @@ func jsonReply(data interface{}, w http.ResponseWriter) error {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(jsonBytes)
-	return nil
-}
-
-func errReply(w http.ResponseWriter, code int, err error) {
-	log.Println("an error occurred", code, err.Error())
-	w.Header().Set("Content-Type", "text/plain")
-	w.WriteHeader(code)
-	w.Write([]byte(err.Error()))
-}
-
-func extractJSONBodyIntoData(r *http.Request, data interface{}) error {
-	jsonBytes, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		return err
-	}
-	if len(jsonBytes) == 0 {
-		return errors.New("body was empty")
-	}
-	err = json.Unmarshal(jsonBytes, &data)
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
