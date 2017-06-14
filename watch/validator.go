@@ -3,21 +3,14 @@ package watch
 import (
 	"io/ioutil"
 	"github.com/foomo/petze/check"
-)
-
-import (
 	"github.com/foomo/petze/config"
+	"github.com/PuerkitoBio/goquery"
+	"fmt"
 )
 
-type Validator interface {
-	Validate(ctx *CheckContext) []Error
-}
+type ValidatorFunc func(ctx *CheckContext) (errs []Error)
 
-type ResponseDataValidator struct {
-}
-
-func (ResponseDataValidator) Validate(ctx *CheckContext) []Error {
-	errs := []Error{}
+func ValidateJsonPath(ctx *CheckContext) (errs []Error) {
 	if ctx.check.Data != nil {
 		contentType := config.ContentTypeJSON
 		if ctx.call.ContentType != "" {
@@ -36,11 +29,11 @@ func (ResponseDataValidator) Validate(ctx *CheckContext) []Error {
 		for selector, expect := range ctx.check.Data {
 			switch contentType {
 			case config.ContentTypeJSON:
-				ok, _ := check.JSONPath(dataBytes, selector, expect)
+				ok, info := check.JSONPath(dataBytes, selector, expect)
 				if !ok {
 					errs = append(errs, Error{
-						Error: "could not read data from response: " + errDataBytes.Error(),
-						Type:  ErrorTypeDataMismatch,
+						Error: info,
+						Type:  ErrorJsonPath,
 					})
 				}
 			default:
@@ -51,6 +44,54 @@ func (ResponseDataValidator) Validate(ctx *CheckContext) []Error {
 			}
 		}
 	}
+	return
+}
 
+func ValidateDuration(ctx *CheckContext) (errs []Error) {
+	if ctx.check.Duration > 0 {
+		if ctx.duration > ctx.check.Duration {
+			errs = append(errs, Error{
+				Error: fmt.Sprint("call duration ", ctx.duration, " exceeded ", ctx.check.Duration),
+				Type:  ErrorTypeServerTooSlow,
+			})
+		}
+	}
+	return
+}
+
+func ValidateGoQuery(ctx *CheckContext) (errs []Error) {
+	if ctx.check.Goquery != nil {
+		// go query
+		doc, errDoc := goquery.NewDocumentFromResponse(ctx.response)
+		if errDoc != nil {
+			errs = append(errs, Error{
+				Error: errDoc.Error(),
+				Type:  ErrorTypeGoQuery,
+			})
+		} else {
+			for selector, expect := range ctx.check.Goquery {
+				ok, info := check.Goquery(doc, selector, expect)
+				if !ok {
+					errs = append(errs, Error{
+						Error: info,
+						Type:  ErrorTypeGoQueryMismatch,
+					})
+				}
+			}
+		}
+	}
+	return
+}
+
+func ValidateContentType(ctx *CheckContext) (errs []Error) {
+	if ctx.check.ContentType != "" {
+		contentType := ctx.response.Header.Get("Content-Type")
+		if contentType != ctx.check.ContentType {
+			errs = append(errs, Error{
+				Error: "unexpected Content-Type: \"" + contentType + "\", expected: \"" + ctx.check.ContentType + "\"",
+				Type:  ErrorTypeUnexpectedContentType,
+			})
+		}
+	}
 	return errs
 }

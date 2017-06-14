@@ -37,16 +37,17 @@ const (
 	ErrorTypeDNS                             = "dns"
 	ErrorTypeDNSConfig                       = "dnsConfig"
 	ErrorTypeTLSCertificateInvalid           = "tlsCertificateInvalid"
-	ErrorTypeTLSHostNameError                = "tlsHostNameError"
-	ErrorTypeTLSSystemRootsError             = "tlsSystemRootsError"
-	ErrorTypeTLSUnknownAuthority             = "tlsUnknownAutority"
-	ErrorTypeWrongHTTPStatusCode             = "wrongHTTPStatus"
-	ErrorTypeCertificateIsExpiring           = "certificateIsExpiring"
-	ErrorTypeUnexpectedContentType           = "unexpectedContentType"
-	ErrorTypeSessionFail                     = "sessionFail"
-	ErrorTypeGoQueryMismatch                 = "goqueryMismatch"
-	ErrorTypeGoQuerySyntax                	 = "goqueryMismatch"
-	ErrorTypeDataMismatch                    = "dataMismatch"
+	ErrorTypeTLSHostNameError      = "tlsHostNameError"
+	ErrorTypeTLSSystemRootsError   = "tlsSystemRootsError"
+	ErrorTypeTLSUnknownAuthority   = "tlsUnknownAutority"
+	ErrorTypeWrongHTTPStatusCode   = "wrongHTTPStatus"
+	ErrorTypeCertificateIsExpiring = "certificateIsExpiring"
+	ErrorTypeUnexpectedContentType = "unexpectedContentType"
+	ErrorTypeSessionFail           = "sessionFail"
+	ErrorTypeGoQueryMismatch       = "goqueryMismatch"
+	ErrorTypeGoQuery               = "goQueryGeneralError"
+	ErrorTypeDataMismatch          = "dataMismatch"
+	ErrorJsonPath                  = "jsonPathError"
 )
 
 type WarningType string
@@ -72,6 +73,7 @@ type Result struct {
 	Warnings  []Warning `json:"warnings"`
 	Timeout   bool      `json:"timeout"`
 	Timestamp time.Time `json:"timestamp"`
+	RunTime   time.Duration `json:"runtime"`
 }
 
 func NewResult(id string) *Result {
@@ -258,7 +260,6 @@ func watch(service *config.Service) (r *Result) {
 	response, err := client.Do(request)
 	r.Errors = append(r.Errors, errRecorder.errors...)
 	r.Warnings = append(r.Warnings, errRecorder.warnings...)
-	//r.RunTime = time.Since(r.Timestamp)
 
 	if response != nil && response.Body != nil {
 		// always close the body
@@ -298,6 +299,7 @@ func watch(service *config.Service) (r *Result) {
 		return
 	}
 
+	// prepare to run the session with cookies
 	cookieJar, _ := cookiejar.New(nil)
 	client.Jar = cookieJar
 	errSession := runSession(service, r, client)
@@ -305,6 +307,7 @@ func watch(service *config.Service) (r *Result) {
 		log.Println("session error", errSession)
 		r.addError(errSession, ErrorTypeSessionFail, "")
 	}
+	r.RunTime = time.Since(r.Timestamp)
 
 	// r.addError(errors.New(fmt.Sprint("response time too slow:", runTimeMilliseconds, ", should not be more than:", maxRuntime)), ErrorTypeServerTooSlow)
 	//r.StatusCode = response.StatusCode

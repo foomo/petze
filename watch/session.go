@@ -2,7 +2,6 @@ package watch
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"net/url"
 
@@ -14,8 +13,6 @@ import (
 
 	"bytes"
 
-	"github.com/PuerkitoBio/goquery"
-	"github.com/foomo/petze/check"
 	"github.com/foomo/petze/config"
 )
 
@@ -61,6 +58,8 @@ func runSession(service *config.Service, r *Result, client *http.Client) error {
 		if errResponse != nil {
 			return errResponse
 		}
+		defer response.Body.Close()
+
 		duration := time.Since(start)
 
 		for _, chk := range call.Check {
@@ -70,7 +69,7 @@ func runSession(service *config.Service, r *Result, client *http.Client) error {
 				call:     call,
 				duration: duration,
 			}
-			r.Errors = checkResponse(ctx)
+			r.Errors = append(r.Errors, checkResponse(ctx)...)
 		}
 
 	}
@@ -84,46 +83,19 @@ type CheckContext struct {
 	duration time.Duration
 }
 
+var ContextValidators = []ValidatorFunc{
+	ValidateJsonPath,
+	ValidateGoQuery,
+	ValidateDuration,
+	ValidateContentType,
+}
+
 func checkResponse(ctx *CheckContext) []Error {
 	errs := []Error{}
 
-	dataValidator := &ResponseDataValidator{}
-	dataValidator.Validate(ctx)
-	switch true {
-	case ctx.check.Duration > 0:
-		if ctx.duration > ctx.check.Duration {
-			errs = append(errs, Error{
-				Error: fmt.Sprint("call duration ", ctx.duration, " exceeded ", ctx.check.Duration),
-				Type:  ErrorTypeServerTooSlow,
-			})
-		}
-	case ctx.check.Goquery != nil:
-		// go query
-		doc, errDoc := goquery.NewDocumentFromResponse(ctx.response)
-		if errDoc != nil {
-			errs = append(errs, Error{
-				Error: errDoc.Error(),
-				Type:  ErrorTypeGoQuerySyntax,
-			})
-		} else {
-			for selector, expect := range ctx.check.Goquery {
-				ok, info := check.Goquery(doc, selector, expect)
-				if !ok {
-					errs = append(errs, Error{
-						Error: info,
-						Type:  ErrorTypeGoQueryMismatch,
-					})
-				}
-			}
-		}
-	case ctx.check.ContentType != "":
-		contentType := ctx.response.Header.Get("Content-Type")
-		if contentType != ctx.check.ContentType {
-			errs = append(errs, Error{
-				Error: "unexpected Content-Type: \"" + contentType + "\", expected: \"" + ctx.check.ContentType + "\"",
-				Type:  ErrorTypeUnexpectedContentType,
-			})
-		}
+	for _, validator := range ContextValidators {
+		errs = append(errs, validator(ctx)...)
 	}
+
 	return errs
 }
