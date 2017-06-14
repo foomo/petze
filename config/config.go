@@ -52,7 +52,7 @@ type Service struct {
 type Server struct {
 	Address       string
 	BasicAuthFile string
-	TLS *struct {
+	TLS           *struct {
 		Address string
 		Cert    string
 		Key     string
