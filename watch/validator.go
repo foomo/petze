@@ -11,7 +11,7 @@ import (
 type ValidatorFunc func(ctx *CheckContext) (errs []Error)
 
 func ValidateJsonPath(ctx *CheckContext) (errs []Error) {
-	if ctx.check.Data != nil {
+	if ctx.check.JSONPath != nil {
 		contentType := config.ContentTypeJSON
 		if ctx.call.ContentType != "" {
 			contentType = ctx.call.ContentType
@@ -26,7 +26,7 @@ func ValidateJsonPath(ctx *CheckContext) (errs []Error) {
 			return errs
 		}
 
-		for selector, expect := range ctx.check.Data {
+		for selector, expect := range ctx.check.JSONPath {
 			switch contentType {
 			case config.ContentTypeJSON:
 				ok, info := check.JSONPath(dataBytes, selector, expect)

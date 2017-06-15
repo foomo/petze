@@ -62,15 +62,15 @@ var validateJsonPathTests = []struct {
 }{
 	{&CheckContext{
 		response: createResponse(`{"hello":"world"}`, "application/json"),
-		check:    config.Check{Data: map[string]config.Expect{"$.hello+": {Equals: "world"}}},
+		check:    config.Check{JSONPath: map[string]config.Expect{"$.hello+": {Equals: "world"}}},
 	}, validationCheck{"", 0, "failed valid jquery path"}},
 	{&CheckContext{
 		response: createResponse(`{"hello":"world"}`, "application/json"),
-		check:    config.Check{Data: map[string]config.Expect{"$.nonexist+": {Equals: "world"}}},
+		check:    config.Check{JSONPath: map[string]config.Expect{"$.nonexist+": {Equals: "world"}}},
 	}, validationCheck{ErrorJsonPath, 1, "failed non-existing selector"}},
 	{&CheckContext{
 		response: createResponse(`{"hello": ["one","two"]}`, "application/json"),
-		check:    config.Check{Data: map[string]config.Expect{"$.hello+": {Min: &[]int64{3}[0]}}},
+		check:    config.Check{JSONPath: map[string]config.Expect{"$.hello+": {Min: &[]int64{3}[0]}}},
 	}, validationCheck{ErrorJsonPath, 1, "failed failed minimum selection"}},
 }
 

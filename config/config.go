@@ -23,7 +23,7 @@ type Expect struct {
 
 type Check struct {
 	Comment     string
-	Data        map[string]Expect
+	JSONPath    map[string]Expect
 	Goquery     map[string]Expect
 	Header      map[string][]string
 	Duration    time.Duration
