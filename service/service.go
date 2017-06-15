@@ -107,8 +107,9 @@ func Run(c *config.Server, servicesConfigfile string) error {
 	if err != nil {
 		return err
 	}
-
+	// register additional listeners which listen to results
 	s.collector.RegisterListener(exporter.PrometheusMetricsListener)
+	s.collector.RegisterListener(exporter.LogResultHandler)
 
 	log.Info("starting petze server on: ", c.Address)
 
