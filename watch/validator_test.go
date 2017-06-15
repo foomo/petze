@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
+	"bytes"
 )
 
 type validationCheck struct {
@@ -45,17 +46,17 @@ var validateJsonPathTests = []struct {
 	out validationCheck
 }{
 	{&CheckContext{
-		responseBody: []byte(`{"hello":"world"}`),
+		responseBodyReader: bytes.NewReader([]byte(`{"hello":"world"}`)),
 		response:     createResponse(`{"hello":"world"}`, "application/json"),
 		check:        config.Check{JSONPath: map[string]config.Expect{"$.hello+": {Equals: "world"}}},
 	}, validationCheck{"", 0, "failed valid jquery path"}},
 	{&CheckContext{
-		responseBody: []byte(`{"hello":"world"}`),
+		responseBodyReader: bytes.NewReader([]byte(`{"hello":"world"}`)),
 		response:     createResponse(`{"hello":"world"}`, "application/json"),
 		check:        config.Check{JSONPath: map[string]config.Expect{"$.nonexist+": {Equals: "world"}}},
 	}, validationCheck{ErrorJsonPath, 1, "failed non-existing selector"}},
 	{&CheckContext{
-		responseBody: []byte(`{"hello":"world"}`),
+		responseBodyReader: bytes.NewReader([]byte(`{"hello":"world"}`)),
 		response:     createResponse(`{"hello": ["one","two"]}`, "application/json"),
 		check:        config.Check{JSONPath: map[string]config.Expect{"$.hello+": {Min: &[]int64{3}[0]}}},
 	}, validationCheck{ErrorJsonPath, 1, "failed failed minimum selection"}},
