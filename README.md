@@ -65,14 +65,14 @@ session:
     content-type: application/json
     headers:
       "X-Test": ["foo"]
-    data:
+    json-path:
       foo: bar
     check:
       - content-type: application/json
       - duration: 100ms
       - header:
           "X-Test": "foo"
-      - data:
+      - json-path:
         # this is a json path expression
         "$[0].product.images+":
         	min: 1
