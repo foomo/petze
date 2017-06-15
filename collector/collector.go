@@ -99,6 +99,8 @@ func (c *Collector) collect() {
 					serviceResults = serviceResults[len(serviceResults)-maxResults:]
 				}
 				results[result.ID] = serviceResults
+
+				c.NotifyListeners(result)
 			}
 		}
 	}
