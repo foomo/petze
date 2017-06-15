@@ -20,7 +20,7 @@ func LogResultHandler(result watch.Result) {
 			logger.WithField("type", err.Type).Error(err.Error)
 		}
 	} else {
-		logger.Info("run complete")
+		logger.Info("run completed without errors")
 	}
 
 }
