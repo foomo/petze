@@ -11,11 +11,11 @@ import (
 	"strings"
 	"time"
 
-	"log"
-
 	"reflect"
 
 	"github.com/foomo/petze/config"
+
+	log "github.com/sirupsen/logrus"
 )
 
 var typeDNSConfigErr = reflect.TypeOf(&net.DNSConfigError{})
@@ -50,7 +50,6 @@ const (
 	ErrorJsonPath                            = "jsonPathError"
 )
 
-
 type Error struct {
 	Error   string    `json:"error"`
 	Type    ErrorType `json:"type"`
@@ -84,7 +83,6 @@ func addError(errors []Error, err error, t ErrorType, comment string) []Error {
 		Comment: comment,
 	})
 }
-
 
 type dialerErrRecorder struct {
 	errors                     []Error
@@ -130,7 +128,7 @@ func (w *Watcher) watchLoop(chanResult chan Result) {
 
 func getClientAndDialErrRecorder() (client *http.Client, errRecorder *dialerErrRecorder) {
 	errRecorder = &dialerErrRecorder{
-		errors:   []Error{},
+		errors: []Error{},
 	}
 	tlsConfig := &tls.Config{}
 	dialer := &net.Dialer{
@@ -166,7 +164,7 @@ func getClientAndDialErrRecorder() (client *http.Client, errRecorder *dialerErrR
 				systemRootsError := tlsErr.(x509.SystemRootsError)
 				errRecorder.tlsSystemRootsError = &systemRootsError
 			default:
-				log.Println("unknown tls error", reflect.TypeOf(tlsErr), tlsErr)
+				log.Error("unknown tls error", reflect.TypeOf(tlsErr), tlsErr)
 			}
 		}
 		return conn, tlsErr
@@ -179,16 +177,16 @@ func getClientAndDialErrRecorder() (client *http.Client, errRecorder *dialerErrR
 				opError := reflect.ValueOf(err).Elem().Interface().(net.OpError)
 				switch reflect.TypeOf(opError.Err) {
 				case typeDNSConfigErr:
-					log.Println("dns config error")
+					log.Error("dns config error")
 					errRecorder.dnsConfigError = opError.Err.(net.Error)
 				case typeDNSErr:
-					log.Println("dns error")
+					log.Error("dns error")
 					errRecorder.dnsError = opError.Err.(net.Error)
 				default:
 					errRecorder.unknownErr = opError.Err
 				}
 			default:
-				log.Println("again some general bullshit", err)
+				log.Error("again some general bullshit", err)
 				errRecorder.err = err.(net.Error)
 			}
 		}
@@ -268,10 +266,8 @@ func watch(service *config.Service) (r *Result) {
 			netErr = errRecorder.err
 			r.addError(errRecorder.err, ErrorTypeUnknownError, "")
 		}
-		//log.Println("service", service.ID, err, "errRecorder dns:", errRecorder.dnsError, ", dnsConfig", errRecorder.dnsConfigError, ", err:", errRecorder.err, ", tls cert invalid:", errRecorder.tlsCertificateInvalidError)
 		if netErr != nil {
 			r.Timeout = netErr.Timeout()
-			//r.ErrorIsTemporary = netErr.Temporary()
 		}
 		return
 	}
@@ -281,7 +277,7 @@ func watch(service *config.Service) (r *Result) {
 	client.Jar = cookieJar
 	errSession := runSession(service, r, client)
 	if errSession != nil {
-		log.Println("session error", errSession)
+		log.Error("session error", errSession)
 		r.addError(errSession, ErrorTypeSessionFail, "")
 	}
 	r.RunTime = time.Since(r.Timestamp)

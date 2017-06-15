@@ -2,13 +2,12 @@ package collector
 
 import (
 	"encoding/json"
-	"log"
 	"time"
-
-	"fmt"
 
 	"github.com/foomo/petze/config"
 	"github.com/foomo/petze/watch"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type ResultListener func(watch.Result)
@@ -125,15 +124,13 @@ func (c *Collector) configWatch() {
 	for {
 		services, errServices := config.LoadServices(c.servicesConfigDir)
 		if errServices != nil {
-			log.Println("could not read configuration:", errServices)
+			log.Error("could not read configuration:", errServices)
 		}
 		if errServices == nil {
 			newHash := hashServiceConfig(services)
 			oldHash := hashServiceConfig(c.services)
 			if newHash != oldHash {
-				fmt.Println("there was a successful configuration update")
-				fmt.Println(oldHash)
-				fmt.Println(newHash)
+				log.Info("configuration update successful")
 				c.updateServices()
 			}
 		}
@@ -146,7 +143,7 @@ func (c *Collector) updateServices() error {
 	if err == nil {
 		c.chanServices <- services
 	} else {
-		log.Println("could not update services:", err)
+		log.Warn("could not update services:", err)
 	}
 	return err
 }

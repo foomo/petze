@@ -42,7 +42,6 @@ func loadServicesFromDir(configDir string, targets map[string]*Service) error {
 	return filepath.Walk(absoluteConfigDir, func(fp string, info os.FileInfo, err error) error {
 		if !info.IsDir() && !strings.HasPrefix(info.Name(), ".") && strings.HasSuffix(fp, ".yml") && info.Name() != "petze.yml" {
 			p := strings.TrimSuffix(strings.TrimPrefix(fp, absoluteConfigDir+string(os.PathSeparator)), ".yml")
-			// fmt.Println(fp, info.Name(), p)
 			serviceConfig := &Service{}
 			targets[p] = serviceConfig
 			loadErr := load(fp, &serviceConfig)
@@ -79,17 +78,11 @@ func fixYamlMapsForJSON(source interface{}, level int) (target interface{}) {
 	case "map[interface {}]interface {}":
 		t := map[string]interface{}{}
 		fuckingSource := source.(map[interface{}]interface{})
-		// fmt.Println("mapping @", level, refl.Type().String())
 		for key, value := range fuckingSource {
-			// fmt.Println(key, "@", level)
 			t[fmt.Sprint(key)] = fixYamlMapsForJSON(value, level+1)
 		}
-		// fmt.Println("mapped")
-		// fmt.Println(fuckingSource)
-		// fmt.Println(t)
 		return t
 	case "[]interface {}":
-		// fmt.Println("mapping interface array @", level)
 		sArray := source.([]interface{})
 		tArray := make([]interface{}, len(sArray))
 		for i, element := range sArray {
@@ -97,7 +90,6 @@ func fixYamlMapsForJSON(source interface{}, level int) (target interface{}) {
 		}
 		return tArray
 	default:
-		// fmt.Println("i am fine with", refl.Type().String(), source)
 		return source
 	}
 }

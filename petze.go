@@ -2,12 +2,11 @@ package main
 
 import (
 	"flag"
-	"log"
 	"os"
 
 	"github.com/foomo/petze/service"
-	"fmt"
 	"github.com/foomo/petze/config"
+	log "github.com/sirupsen/logrus"
 )
 
 func main() {
@@ -31,10 +30,10 @@ func runServer(configurationDirectory string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Println(service.Run(serverConfig, configurationDirectory))
+	log.Info(service.Run(serverConfig, configurationDirectory))
 }
 
 func usage() {
-	fmt.Printf("Usage: %s configuration-directory \n", os.Args[0])
+	log.Printf("Usage: %s configuration-directory \n", os.Args[0])
 	flag.PrintDefaults()
 }

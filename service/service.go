@@ -3,7 +3,6 @@ package service
 import (
 	"crypto/tls"
 	"encoding/json"
-	"log"
 	"net/http"
 
 	auth "github.com/abbot/go-http-auth"
@@ -13,6 +12,8 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/foomo/petze/exporter"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func jsonReply(data interface{}, w http.ResponseWriter) error {
@@ -109,10 +110,10 @@ func Run(c *config.Server, servicesConfigfile string) error {
 
 	s.collector.RegisterListener(exporter.PrometheusMetricsListener)
 
-	log.Println("starting petze server on: ", c.Address)
+	log.Info("starting petze server on: ", c.Address)
 
 	if c.BasicAuthFile != "" {
-		log.Println("\t using basic auth from: ", c.BasicAuthFile)
+		log.Info("\t using basic auth from: ", c.BasicAuthFile)
 	}
 
 	ba := newBasicAuthHandler(s, c.BasicAuthFile)
@@ -126,7 +127,7 @@ func Run(c *config.Server, servicesConfigfile string) error {
 
 	if c.TLS != nil {
 		go func() {
-			log.Println("tls is configured: ", c.TLS)
+			log.Info("tls is configured: ", c.TLS)
 			tlsServer := &http.Server{
 				Addr:      c.TLS.Address,
 				Handler:   ba,

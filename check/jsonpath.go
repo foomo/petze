@@ -1,12 +1,13 @@
 package check
 
 import (
-	"fmt"
 	"reflect"
 
 	"github.com/Jeffail/gabs"
 	"github.com/NodePrime/jsonpath"
 	"github.com/foomo/petze/config"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func JSONPath(jsonBytes []byte, selector string, expect config.Expect) (ok bool, info string) {
@@ -54,7 +55,7 @@ func JSONPath(jsonBytes []byte, selector string, expect config.Expect) (ok bool,
 	case "slice":
 		length = int64(len(data.([]interface{})))
 	default:
-		fmt.Println("wtf would that be", refl.Type().String(), refl.Kind().String())
+		log.Warn("wtf would that be", refl.Type().String(), refl.Kind().String())
 	}
 
 	if eval.Error != nil {
