@@ -5,7 +5,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/foomo/petze/check"
 	"github.com/foomo/petze/config"
-	"bytes"
+	"io/ioutil"
 )
 
 type ValidatorFunc func(ctx *CheckContext) (errs []Error)
@@ -20,10 +20,16 @@ func ValidateJsonPath(ctx *CheckContext) (errs []Error) {
 			contentType = ctx.check.ContentType
 		}
 
+		dataBytes, errDataBytes := ioutil.ReadAll(ctx.responseBodyReader)
+		if errDataBytes != nil {
+			errs := append(errs, Error{Error: "could not read data from response: " + errDataBytes.Error()})
+			return errs
+		}
+
 		for selector, expect := range ctx.check.JSONPath {
 			switch contentType {
 			case config.ContentTypeJSON:
-				ok, info := check.JSONPath(ctx.responseBody, selector, expect)
+				ok, info := check.JSONPath(dataBytes, selector, expect)
 				if !ok {
 					errs = append(errs, Error{
 						Error: info,
@@ -56,7 +62,8 @@ func ValidateDuration(ctx *CheckContext) (errs []Error) {
 func ValidateGoQuery(ctx *CheckContext) (errs []Error) {
 	if ctx.check.Goquery != nil {
 		// go query
-		doc, errDoc := goquery.NewDocumentFromReader(bytes.NewReader(ctx.responseBody))
+
+		doc, errDoc := goquery.NewDocumentFromReader(ctx.responseBodyReader)
 		if errDoc != nil {
 			errs = append(errs, Error{
 				Error: errDoc.Error(),
@@ -92,8 +99,13 @@ func ValidateContentType(ctx *CheckContext) (errs []Error) {
 
 func ValidateRegex(ctx *CheckContext) (errs []Error) {
 	if ctx.check.Regex != nil {
+		data, errDataBytes := ioutil.ReadAll(ctx.responseBodyReader)
+		if errDataBytes != nil {
+			errs = append(errs, Error{Error: "could not read data from response: " + errDataBytes.Error()})
+			return
+		}
 		for regexString, expect := range ctx.check.Regex {
-			if ok, info := check.Regex(ctx.responseBody, regexString, expect); ok == false {
+			if ok, info := check.Regex(data, regexString, expect); ok == false {
 				errs = append(errs, Error{Error: info, Type: ErrorRegex})
 			}
 		}

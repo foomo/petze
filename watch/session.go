@@ -62,19 +62,20 @@ func runSession(service *config.Service, r *Result, client *http.Client) error {
 		defer response.Body.Close()
 
 		duration := time.Since(start)
-		responseBody, errReadAll := ioutil.ReadAll(response.Body)
-		if errReadAll != nil {
-			r.Errors = append(r.Errors, Error{Error: "could not read from response" + errReadAll.Error(), Type: ErrorBadResponseBody})
+
+		responseBodyReader, readerErr := getResponseBodyReader(response, call.Check)
+		if readerErr != nil {
+			return readerErr
 		}
 
 		for _, chk := range call.Check {
 
 			ctx := &CheckContext{
-				response:     response,
-				responseBody: responseBody,
-				check:        chk,
-				call:         call,
-				duration:     duration,
+				response:           response,
+				responseBodyReader: responseBodyReader,
+				check:              chk,
+				call:               call,
+				duration:           duration,
 			}
 			r.Errors = append(r.Errors, checkResponse(ctx)...)
 		}
@@ -83,12 +84,24 @@ func runSession(service *config.Service, r *Result, client *http.Client) error {
 	return nil
 }
 
+func getResponseBodyReader(response *http.Response, checks []config.Check) (io.Reader, error) {
+	if len(checks) > 1 {
+		return response.Body, nil
+	} else {
+		responseBody, errReadAll := ioutil.ReadAll(response.Body)
+		if errReadAll != nil {
+			return nil, errors.New("could not read from response" + errReadAll.Error())
+		}
+		return bytes.NewReader(responseBody), nil
+	}
+}
+
 type CheckContext struct {
-	response     *http.Response
-	responseBody []byte
-	check        config.Check
-	call         config.Call
-	duration     time.Duration
+	response           *http.Response
+	responseBodyReader io.Reader
+	check              config.Check
+	call               config.Call
+	duration           time.Duration
 }
 
 var ContextValidators = []ValidatorFunc{
