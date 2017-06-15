@@ -40,37 +40,24 @@ func TestValidateContentTypeError(t *testing.T) {
 	}
 }
 
-func TestValidateGoQueryBadResponseBody(t *testing.T) {
-	resp := httptest.NewRecorder()
-
-	ctx := &CheckContext{
-		response: resp.Result(),
-		check: config.Check{
-			Goquery: map[string]config.Expect{},
-		},
-	}
-
-	errs := ValidateGoQuery(ctx)
-	if len(errs) != 1 || errs[0].Type != ErrorTypeGoQuery {
-		t.Fail()
-	}
-}
-
 var validateJsonPathTests = []struct {
 	in  *CheckContext
 	out validationCheck
 }{
 	{&CheckContext{
-		response: createResponse(`{"hello":"world"}`, "application/json"),
-		check:    config.Check{JSONPath: map[string]config.Expect{"$.hello+": {Equals: "world"}}},
+		responseBody: []byte(`{"hello":"world"}`),
+		response:     createResponse(`{"hello":"world"}`, "application/json"),
+		check:        config.Check{JSONPath: map[string]config.Expect{"$.hello+": {Equals: "world"}}},
 	}, validationCheck{"", 0, "failed valid jquery path"}},
 	{&CheckContext{
-		response: createResponse(`{"hello":"world"}`, "application/json"),
-		check:    config.Check{JSONPath: map[string]config.Expect{"$.nonexist+": {Equals: "world"}}},
+		responseBody: []byte(`{"hello":"world"}`),
+		response:     createResponse(`{"hello":"world"}`, "application/json"),
+		check:        config.Check{JSONPath: map[string]config.Expect{"$.nonexist+": {Equals: "world"}}},
 	}, validationCheck{ErrorJsonPath, 1, "failed non-existing selector"}},
 	{&CheckContext{
-		response: createResponse(`{"hello": ["one","two"]}`, "application/json"),
-		check:    config.Check{JSONPath: map[string]config.Expect{"$.hello+": {Min: &[]int64{3}[0]}}},
+		responseBody: []byte(`{"hello":"world"}`),
+		response:     createResponse(`{"hello": ["one","two"]}`, "application/json"),
+		check:        config.Check{JSONPath: map[string]config.Expect{"$.hello+": {Min: &[]int64{3}[0]}}},
 	}, validationCheck{ErrorJsonPath, 1, "failed failed minimum selection"}},
 }
 
@@ -83,6 +70,7 @@ func createResponse(data, contentType string) *http.Response {
 
 func TestValidateJsonPath(t *testing.T) {
 	for _, test := range validateJsonPathTests {
+
 		errs := ValidateJsonPath(test.in)
 		if len(errs) != test.out.length || (len(errs) > 0 && errs[0].Type != test.out.errorType) {
 			t.Error(test.out.message)

@@ -49,6 +49,7 @@ const (
 	ErrorTypeDataMismatch                    = "dataMismatch"
 	ErrorJsonPath                            = "jsonPathError"
 	ErrorRegex				 = "regexError"
+	ErrorBadResponseBody			 = "badResponseBody"
 )
 
 type Error struct {

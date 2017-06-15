@@ -14,6 +14,7 @@ import (
 	"bytes"
 
 	"github.com/foomo/petze/config"
+	"io/ioutil"
 )
 
 func runSession(service *config.Service, r *Result, client *http.Client) error {
@@ -61,13 +62,19 @@ func runSession(service *config.Service, r *Result, client *http.Client) error {
 		defer response.Body.Close()
 
 		duration := time.Since(start)
+		responseBody, errReadAll := ioutil.ReadAll(response.Body)
+		if errReadAll != nil {
+			r.Errors = append(r.Errors, Error{Error: "could not read from response" + errReadAll.Error(), Type: ErrorBadResponseBody})
+		}
 
 		for _, chk := range call.Check {
+
 			ctx := &CheckContext{
-				response: response,
-				check:    chk,
-				call:     call,
-				duration: duration,
+				response:     response,
+				responseBody: responseBody,
+				check:        chk,
+				call:         call,
+				duration:     duration,
 			}
 			r.Errors = append(r.Errors, checkResponse(ctx)...)
 		}
@@ -77,10 +84,11 @@ func runSession(service *config.Service, r *Result, client *http.Client) error {
 }
 
 type CheckContext struct {
-	response *http.Response
-	check    config.Check
-	call     config.Call
-	duration time.Duration
+	response     *http.Response
+	responseBody []byte
+	check        config.Check
+	call         config.Call
+	duration     time.Duration
 }
 
 var ContextValidators = []ValidatorFunc{
