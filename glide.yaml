@@ -16,3 +16,5 @@ import:
   - prometheus
   - prometheus/promhttp
 - package: gopkg.in/yaml.v1
+- package: github.com/sirupsen/logrus
+  version: master
