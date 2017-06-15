@@ -10,6 +10,8 @@ import (
 	"github.com/foomo/petze/collector"
 	"github.com/foomo/petze/config"
 	"github.com/julienschmidt/httprouter"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func jsonReply(data interface{}, w http.ResponseWriter) error {
@@ -33,8 +35,10 @@ func newServer(servicesConfigfile string) (s *server, err error) {
 		router:    httprouter.New(),
 		collector: coll,
 	}
+
 	s.router.GET("/services", s.GETServices)
 	s.router.GET("/status", s.GETStatus)
+	s.router.Handler("GET", "/metrics", promhttp.Handler())
 	return s, nil
 }
 
@@ -94,6 +98,7 @@ func getTLSConfig() *tls.Config {
 
 // Run as a server
 func Run(c *config.Server, servicesConfigfile string) error {
+
 	s, err := newServer(servicesConfigfile)
 	if err != nil {
 		return err
