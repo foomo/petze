@@ -45,11 +45,11 @@ func (c *Collector) Start() {
 
 const maxResults = 1000
 
-func (c *Collector) registerListener(listener ResultListener) {
+func (c *Collector) RegisterListener(listener ResultListener) {
 	c.resultListeners = append(c.resultListeners, listener)
 }
 
-func (c *Collector) notifyListeners(result watch.Result) {
+func (c *Collector) NotifyListeners(result watch.Result) {
 	for _, listener := range c.resultListeners {
 		listener(result)
 	}
