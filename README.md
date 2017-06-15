@@ -1,3 +1,5 @@
+[![Travis CI](https://travis-ci.org/foomo/petze.svg?branch=master)](https://travis-ci.org/foomo/petze)
+
 # Petze
 
 **Petze monitors web sites and services**. It exports [prometheus.io](https://promtheus.io) metrics and writes a [logrus](https://github.com/Sirupsen/logrus) log.
@@ -8,9 +10,9 @@ One instance of petze is designed to monitor many services at little cost.
 
 While there is a vast amount of monitoring solutions out there I still felt there was somthing simplistic missing, that would play nicely with [prometheus.io](https://promtheus.io), which I have come to appreciate very much.
 
-# Design
+# Status
 
-
+As of June 2017 we have a first working version and we are trying to get the configs right - feedback is most welcome.
 
 # Configuration
 
