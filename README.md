@@ -65,7 +65,7 @@ session:
     content-type: application/json
     headers:
       "X-Test": ["foo"]
-    json-path:
+    data:
       foo: bar
     check:
       - content-type: application/json
