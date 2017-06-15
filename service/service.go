@@ -31,6 +31,7 @@ type server struct {
 
 func newServer(servicesConfigfile string) (s *server, err error) {
 	coll, err := collector.NewCollector(servicesConfigfile)
+	defer coll.Start()
 	s = &server{
 		router:    httprouter.New(),
 		collector: coll,

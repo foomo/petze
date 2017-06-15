@@ -11,14 +11,16 @@ import (
 	"github.com/foomo/petze/watch"
 )
 
+type ResultListener func(watch.Result)
+
 // Collector collects stats on services
 type Collector struct {
 	servicesConfigDir string
 	chanServices      chan map[string]*config.Service
 	chanGetResults    chan map[string][]watch.Result
 	watchers          map[string]*watch.Watcher
-	//	results           map[string][]*watch.Result
-	services map[string]*config.Service
+	resultListeners   []ResultListener
+	services          map[string]*config.Service
 }
 
 // NewCollector construct a collector - it will watch its config files for changes
@@ -29,14 +31,29 @@ func NewCollector(servicesConfigDir string) (c *Collector, err error) {
 		chanServices:      make(chan map[string]*config.Service),
 		chanGetResults:    make(chan map[string][]watch.Result),
 		watchers:          make(map[string]*watch.Watcher),
-		//results:           make(map[string][]*watch.Result),
+		resultListeners:   make([]ResultListener, 0),
 	}
-	go c.collect()
-	go c.configWatch()
+
 	return c, nil
 }
 
+// Starts collection of results and configuration watch
+func (c *Collector) Start() {
+	go c.collect()
+	go c.configWatch()
+}
+
 const maxResults = 1000
+
+func (c *Collector) registerListener(listener ResultListener) {
+	c.resultListeners = append(c.resultListeners, listener)
+}
+
+func (c *Collector) notifyListeners(result watch.Result) {
+	for _, listener := range c.resultListeners {
+		listener(result)
+	}
+}
 
 func (c *Collector) collect() {
 
