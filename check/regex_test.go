@@ -38,6 +38,26 @@ var regexTestCases = []struct {
 		regex:  `\d+`,
 		expect: expectContains("234"), ok: true, info: "", message: "check find exact value",
 	},
+	{
+		data:   "invalid regex",
+		regex:  `[`,
+		expect: expectMin(1), ok: false, info: "could not compile regex '['", message: "invalid regex check",
+	},
+	{
+		data:   "missing regex equals",
+		regex:  `derp`,
+		expect: expectEquals("derp"), ok: false, info: "could not find regex result equals", message: "missing equals",
+	},
+	{
+		data:   "missing regex contains",
+		regex:  `herp`,
+		expect: expectContains("herp"), ok: false, info: "could not find regex result contains", message: "missing contains",
+	},
+	{
+		data:   "unknown comparator",
+		regex:  `herp`,
+		expect: config.Expect{}, ok: false, info: "comparator not implemented for regex", message: "missing contains",
+	},
 }
 
 func TestCheckRegex(t *testing.T) {

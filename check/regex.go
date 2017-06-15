@@ -30,9 +30,8 @@ func Regex(data []byte, selector string, expect config.Expect) (ok bool, info st
 				return true, "regex contains substring found"
 			}
 		}
-		return false, "could not find regex result equals"
+		return false, "could not find regex result contains"
 	default:
-		info = "comparator not implemented for regex"
+		return false, "comparator not implemented for regex"
 	}
-	return
 }
