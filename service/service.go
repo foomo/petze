@@ -12,6 +12,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/foomo/petze/exporter"
 )
 
 func jsonReply(data interface{}, w http.ResponseWriter) error {
@@ -40,6 +41,7 @@ func newServer(servicesConfigfile string) (s *server, err error) {
 	s.router.GET("/services", s.GETServices)
 	s.router.GET("/status", s.GETStatus)
 	s.router.Handler("GET", "/metrics", promhttp.Handler())
+
 	return s, nil
 }
 
@@ -104,6 +106,9 @@ func Run(c *config.Server, servicesConfigfile string) error {
 	if err != nil {
 		return err
 	}
+
+	s.collector.RegisterListener(exporter.PrometheusMetricsListener)
+
 	log.Println("starting petze server on: ", c.Address)
 
 	if c.BasicAuthFile != "" {
