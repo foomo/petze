@@ -50,11 +50,6 @@ const (
 	ErrorJsonPath                            = "jsonPathError"
 )
 
-type WarningType string
-
-const (
-	WarningTypeCertificateWillExpire WarningType = "certificateWillExpire"
-)
 
 type Error struct {
 	Error   string    `json:"error"`
@@ -62,15 +57,9 @@ type Error struct {
 	Comment string    `json:"comment,omitempty"`
 }
 
-type Warning struct {
-	Warning string      `json:"warning"`
-	Type    WarningType `json:"type"`
-}
-
 type Result struct {
 	ID        string        `json:"id"`
 	Errors    []Error       `json:"errors"`
-	Warnings  []Warning     `json:"warnings"`
 	Timeout   bool          `json:"timeout"`
 	Timestamp time.Time     `json:"timestamp"`
 	RunTime   time.Duration `json:"runtime"`
@@ -96,15 +85,8 @@ func addError(errors []Error, err error, t ErrorType, comment string) []Error {
 	})
 }
 
-func addWarning(warnings []Warning, warning string, t WarningType) []Warning {
-	return append(warnings, Warning{
-		Warning: warning,
-		Type:    t,
-	})
-}
 
 type dialerErrRecorder struct {
-	warnings                   []Warning
 	errors                     []Error
 	unknownErr                 error
 	err                        net.Error
@@ -148,7 +130,6 @@ func (w *Watcher) watchLoop(chanResult chan Result) {
 
 func getClientAndDialErrRecorder() (client *http.Client, errRecorder *dialerErrRecorder) {
 	errRecorder = &dialerErrRecorder{
-		warnings: []Warning{},
 		errors:   []Error{},
 	}
 	tlsConfig := &tls.Config{}
@@ -163,12 +144,9 @@ func getClientAndDialErrRecorder() (client *http.Client, errRecorder *dialerErrR
 			connectionState := tlsConn.ConnectionState()
 			for _, cert := range connectionState.PeerCertificates {
 				durationUntilExpiry := cert.NotAfter.Sub(time.Now())
-				if durationUntilExpiry < time.Hour*24 {
+				if durationUntilExpiry < time.Hour*7*24 {
 					// well in less than 24 h is worth an error
 					errRecorder.errors = addError(errRecorder.errors, errors.New(fmt.Sprint("cert CN=\"", cert.Subject.CommonName, "\" is expiring in less than 24h: ", cert.NotAfter, ", left: ", durationUntilExpiry)), ErrorTypeCertificateIsExpiring, "")
-				} else if durationUntilExpiry < time.Hour*24*14 {
-					// we will start issuing warnings two weeks before a cert expires
-					errRecorder.warnings = addWarning(errRecorder.warnings, fmt.Sprint("cert CN=\"", cert.Subject.CommonName, "\" expires on: ", cert.NotAfter, ", left: ", durationUntilExpiry), WarningTypeCertificateWillExpire)
 				}
 			}
 			conn = tlsConn
@@ -259,7 +237,6 @@ func watch(service *config.Service) (r *Result) {
 	client, errRecorder := getClientAndDialErrRecorder()
 	response, err := client.Do(request)
 	r.Errors = append(r.Errors, errRecorder.errors...)
-	r.Warnings = append(r.Warnings, errRecorder.warnings...)
 
 	if response != nil && response.Body != nil {
 		// always close the body
