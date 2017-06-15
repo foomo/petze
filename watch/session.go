@@ -88,6 +88,7 @@ var ContextValidators = []ValidatorFunc{
 	ValidateGoQuery,
 	ValidateDuration,
 	ValidateContentType,
+	ValidateRegex,
 }
 
 func checkResponse(ctx *CheckContext) []Error {

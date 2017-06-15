@@ -23,9 +23,10 @@ type Expect struct {
 
 type Check struct {
 	Comment     string
-	JSONPath    map[string]Expect
+	JSONPath    map[string]Expect `yaml:"json-path"`
 	Goquery     map[string]Expect
 	Header      map[string][]string
+	Regex       map[string]Expect
 	Duration    time.Duration
 	StatusCode  int64
 	ContentType string `yaml:"content-type"`

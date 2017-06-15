@@ -95,3 +95,19 @@ func ValidateContentType(ctx *CheckContext) (errs []Error) {
 	}
 	return errs
 }
+
+func ValidateRegex(ctx *CheckContext) (errs []Error) {
+	if ctx.check.Regex != nil {
+		data, errDataBytes := ioutil.ReadAll(ctx.response.Body)
+		if errDataBytes != nil {
+			errs = append(errs, Error{Error: "could not read data from response: " + errDataBytes.Error()})
+			return
+		}
+		for regexString, expect := range ctx.check.Regex {
+			if ok, info := check.Regex(data, regexString, expect); ok == false {
+				errs = append(errs, Error{Error: info, Type: ErrorRegex})
+			}
+		}
+	}
+	return
+}

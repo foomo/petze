@@ -48,6 +48,7 @@ const (
 	ErrorTypeGoQuery                         = "goQueryGeneralError"
 	ErrorTypeDataMismatch                    = "dataMismatch"
 	ErrorJsonPath                            = "jsonPathError"
+	ErrorRegex				 = "regexError"
 )
 
 type Error struct {
