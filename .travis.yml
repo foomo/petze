@@ -1,7 +1,6 @@
 language: go
 go:
   - 1.8
-  - tip
 
 script:
   - go get github.com/Masterminds/glide
@@ -10,6 +9,12 @@ script:
 
 after_success:
   - if [ "$TRAVIS_BRANCH" == "master" ]; then
-    make build-docker
-    make push-docker
+      TAG ?= latest
+      REPO ?= smartinov/petze
+
+      GOARCH=amd64 GOOS=linux CGO_ENABLED=0 go build -o docker/petze petze.go
+      docker build -t $(REPO):$(TAG) docker
+      rm -vf docker/petze
+      docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD";
+      docker push $(REPO)
     fi
