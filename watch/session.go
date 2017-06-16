@@ -65,7 +65,7 @@ func runSession(service *config.Service, r *Result, client *http.Client) error {
 
 		duration := time.Since(start)
 
-		responseBodyReader, readerErr := getResponseBodyReader(response, call.Check)
+		responseBodyReader, readerErr := getResponseBodyReader(response)
 		if readerErr != nil {
 			return readerErr
 		}
@@ -82,16 +82,14 @@ func runSession(service *config.Service, r *Result, client *http.Client) error {
 				newErr.Comment = fmt.Sprint(chk.Comment, " @call[", indexCall, "].check[", indexCheck, "]")
 				r.Errors = append(r.Errors, newErr)
 			}
+			responseBodyReader.Seek(0, io.SeekStart)
 		}
 
 	}
 	return nil
 }
 
-func getResponseBodyReader(response *http.Response, checks []config.Check) (io.Reader, error) {
-	if len(checks) > 1 {
-		return response.Body, nil
-	}
+func getResponseBodyReader(response *http.Response) (io.ReadSeeker, error) {
 	responseBody, errReadAll := ioutil.ReadAll(response.Body)
 	if errReadAll != nil {
 		return nil, errors.New("could not read from response" + errReadAll.Error())
