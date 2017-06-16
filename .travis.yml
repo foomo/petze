@@ -2,6 +2,10 @@ language: go
 go:
   - 1.8
 
+cache:
+  directories:
+    - vendor
+
 script:
   - go get github.com/Masterminds/glide
   - glide install
