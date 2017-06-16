@@ -6,5 +6,5 @@ docker-build:
 	rm -vf docker/petze
 
 docker-push:
-	docker login -u=$(DOCKER_USERNAME) -p=$(DOCKER_PASSWORD);
+	docker login -u=$(DOCKER_USERNAME) -p=$(DOCKER_PASSWORD)
 	docker push foomo/petze
