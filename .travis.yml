@@ -8,4 +8,6 @@ script:
   - go test -v $(glide nv)
 
 after_success:
-  - if [ "$TRAVIS_BRANCH" == "master" ]; then make docker-build && make docker-push fi
+  - if [ "$TRAVIS_BRANCH" == "master" ]; then
+      make docker-build && make docker-push;
+    fi;
