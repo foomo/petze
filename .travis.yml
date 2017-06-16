@@ -6,6 +6,11 @@ cache:
   directories:
     - vendor
 
+sudo: required
+
+services:
+  - docker
+
 script:
   - go get github.com/Masterminds/glide
   - glide install
