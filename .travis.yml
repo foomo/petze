@@ -8,6 +8,7 @@ script:
   - go test -v $(glide nv)
 
 after_success:
+  - echo $TRAVIS_BRANCH
   - if [ "$TRAVIS_BRANCH" == "master" ]; then
       TAG ?= latest
       REPO ?= smartinov/petze
