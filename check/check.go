@@ -6,6 +6,15 @@ import (
 	"github.com/foomo/petze/config"
 )
 
+func checkExpectStringEquals(expect config.Expect, expected, actual string) (ok bool, info string) {
+	ok = expected == actual
+	if !ok {
+		info = "actual: \"" + actual + "\" != expected: \"" + expected + "\""
+		return
+	}
+	return
+}
+
 func checkMinMaxCount(expect config.Expect, length int64) (ok bool, info string) {
 	switch true {
 	case expect.Min != nil:

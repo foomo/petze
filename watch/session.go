@@ -2,6 +2,7 @@ package watch
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 
@@ -13,8 +14,9 @@ import (
 
 	"bytes"
 
-	"github.com/foomo/petze/config"
 	"io/ioutil"
+
+	"github.com/foomo/petze/config"
 )
 
 func runSession(service *config.Service, r *Result, client *http.Client) error {
@@ -24,7 +26,7 @@ func runSession(service *config.Service, r *Result, client *http.Client) error {
 	if errURL != nil {
 		return errors.New("can not run session: " + errURL.Error())
 	}
-	for _, call := range service.Session {
+	for indexCall, call := range service.Session {
 		// copy URL
 		callURL := &url.URL{}
 		*callURL = *endPointURL
@@ -68,8 +70,7 @@ func runSession(service *config.Service, r *Result, client *http.Client) error {
 			return readerErr
 		}
 
-		for _, chk := range call.Check {
-
+		for indexCheck, chk := range call.Check {
 			ctx := &CheckContext{
 				response:           response,
 				responseBodyReader: responseBodyReader,
@@ -77,7 +78,10 @@ func runSession(service *config.Service, r *Result, client *http.Client) error {
 				call:               call,
 				duration:           duration,
 			}
-			r.Errors = append(r.Errors, checkResponse(ctx)...)
+			for _, newErr := range checkResponse(ctx) {
+				newErr.Comment = fmt.Sprint(chk.Comment, " @call[", indexCall, "].check[", indexCheck, "]")
+				r.Errors = append(r.Errors, newErr)
+			}
 		}
 
 	}
@@ -87,13 +91,12 @@ func runSession(service *config.Service, r *Result, client *http.Client) error {
 func getResponseBodyReader(response *http.Response, checks []config.Check) (io.Reader, error) {
 	if len(checks) > 1 {
 		return response.Body, nil
-	} else {
-		responseBody, errReadAll := ioutil.ReadAll(response.Body)
-		if errReadAll != nil {
-			return nil, errors.New("could not read from response" + errReadAll.Error())
-		}
-		return bytes.NewReader(responseBody), nil
 	}
+	responseBody, errReadAll := ioutil.ReadAll(response.Body)
+	if errReadAll != nil {
+		return nil, errors.New("could not read from response" + errReadAll.Error())
+	}
+	return bytes.NewReader(responseBody), nil
 }
 
 type CheckContext struct {

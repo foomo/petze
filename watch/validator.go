@@ -2,10 +2,11 @@ package watch
 
 import (
 	"fmt"
+	"io/ioutil"
+
 	"github.com/PuerkitoBio/goquery"
 	"github.com/foomo/petze/check"
 	"github.com/foomo/petze/config"
-	"io/ioutil"
 )
 
 type ValidatorFunc func(ctx *CheckContext) (errs []Error)
