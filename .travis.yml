@@ -18,7 +18,5 @@ script:
 
 after_success:
   - if [ "$TRAVIS_BRANCH" == "master" ]; then
-      make docker-build ;
-      docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD";
-      docker push foomo/petze ;
+      make docker-build && make docker-push ;
     fi;
