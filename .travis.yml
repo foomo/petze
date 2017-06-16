@@ -8,14 +8,4 @@ script:
   - go test -v $(glide nv)
 
 after_success:
-  - echo $TRAVIS_BRANCH
-  - if [ "$TRAVIS_BRANCH" == "master" ]; then
-      TAG ?= latest
-      REPO ?= smartinov/petze
-
-      GOARCH=amd64 GOOS=linux CGO_ENABLED=0 go build -o docker/petze petze.go
-      docker build -t $(REPO):$(TAG) docker
-      rm -vf docker/petze
-      docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD";
-      docker push $(REPO)
-    fi
+  - if [ "$TRAVIS_BRANCH" == "master" ]; then make docker-build && make docker-push fi
