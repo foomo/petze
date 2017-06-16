@@ -2,6 +2,7 @@ package watch
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 
@@ -13,8 +14,9 @@ import (
 
 	"bytes"
 
-	"github.com/foomo/petze/config"
 	"io/ioutil"
+
+	"github.com/foomo/petze/config"
 )
 
 func runSession(service *config.Service, r *Result, client *http.Client) error {
@@ -24,7 +26,7 @@ func runSession(service *config.Service, r *Result, client *http.Client) error {
 	if errURL != nil {
 		return errors.New("can not run session: " + errURL.Error())
 	}
-	for _, call := range service.Session {
+	for index, call := range service.Session {
 		// copy URL
 		callURL := &url.URL{}
 		*callURL = *endPointURL
@@ -78,6 +80,9 @@ func runSession(service *config.Service, r *Result, client *http.Client) error {
 				duration:           duration,
 			}
 			r.Errors = append(r.Errors, checkResponse(ctx)...)
+			for indexErr := range r.Errors {
+				r.Errors[indexErr].Comment = fmt.Sprint(chk.Comment, " @ call ", index)
+			}
 		}
 
 	}
