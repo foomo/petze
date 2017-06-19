@@ -9,15 +9,17 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+var flagJsonOutput bool
+
 func main() {
 	flag.Usage = usage
-	flag.Parse()
-	if flag.NArg() != 1 {
-		flag.Usage()
-		os.Exit(1)
-	}
+	flag.BoolVar(&flagJsonOutput, "json-output", false, "specifies if the logging format is json or not")
 
-	configurationDirectory := os.Args[1]
+	flag.Parse()
+
+	initializeLogger()
+
+	configurationDirectory := flag.Args()[0]
 	if stat, err := os.Stat(configurationDirectory); err == nil && stat.IsDir() {
 		runServer(configurationDirectory)
 	} else {
@@ -36,4 +38,10 @@ func runServer(configurationDirectory string) {
 func usage() {
 	log.Printf("Usage: %s configuration-directory \n", os.Args[0])
 	flag.PrintDefaults()
+}
+
+func initializeLogger() {
+	if flagJsonOutput {
+		log.SetFormatter(&log.JSONFormatter{})
+	}
 }
