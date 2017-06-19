@@ -48,8 +48,8 @@ const (
 	ErrorTypeGoQuery                         = "goQueryGeneralError"
 	ErrorTypeDataMismatch                    = "dataMismatch"
 	ErrorJsonPath                            = "jsonPathError"
-	ErrorRegex				 = "regexError"
-	ErrorBadResponseBody			 = "badResponseBody"
+	ErrorRegex                               = "regexError"
+	ErrorBadResponseBody                     = "badResponseBody"
 )
 
 type Error struct {
@@ -105,9 +105,11 @@ type Watcher struct {
 
 // Watch create a watcher and start watching
 func Watch(service *config.Service, chanResult chan Result) *Watcher {
+
 	w := &Watcher{
 		active:  true,
 		service: service,
+
 	}
 	go w.watchLoop(chanResult)
 	return w
@@ -119,8 +121,10 @@ func (w *Watcher) Stop() {
 }
 
 func (w *Watcher) watchLoop(chanResult chan Result) {
+	httpClient, errRecorder := getClientAndDialErrRecorder()
+
 	for w.active {
-		r := watch(w.service)
+		r := watch(w.service, httpClient, errRecorder)
 		if w.active {
 			chanResult <- *r
 			time.Sleep(w.service.Interval)
@@ -207,7 +211,7 @@ func getClientAndDialErrRecorder() (client *http.Client, errRecorder *dialerErrR
 }
 
 // actual watch
-func watch(service *config.Service) (r *Result) {
+func watch(service *config.Service, client *http.Client, errRecorder *dialerErrRecorder) (r *Result) {
 	r = NewResult(service.ID)
 	// parsing, the endpoint
 	request, err := http.NewRequest("GET", service.Endpoint, nil)
@@ -234,7 +238,6 @@ func watch(service *config.Service) (r *Result) {
 	}
 
 	// i am explicitly not calling http.Get, because it does 30x handling and i do not want that
-	client, errRecorder := getClientAndDialErrRecorder()
 	response, err := client.Do(request)
 	r.Errors = append(r.Errors, errRecorder.errors...)
 
