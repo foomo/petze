@@ -1,12 +1,12 @@
 package watch
 
 import (
+	"bytes"
 	"github.com/dreadl0ck/petze/config"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
-	"bytes"
 )
 
 type validationCheck struct {
@@ -47,18 +47,18 @@ var validateJsonPathTests = []struct {
 }{
 	{&CheckContext{
 		responseBodyReader: bytes.NewReader([]byte(`{"hello":"world"}`)),
-		response:     createResponse(`{"hello":"world"}`, "application/json"),
-		check:        config.Check{JSONPath: map[string]config.Expect{"$.hello+": {Equals: "world"}}},
+		response:           createResponse(`{"hello":"world"}`, "application/json"),
+		check:              config.Check{JSONPath: map[string]config.Expect{"$.hello+": {Equals: "world"}}},
 	}, validationCheck{"", 0, "failed valid jquery path"}},
 	{&CheckContext{
 		responseBodyReader: bytes.NewReader([]byte(`{"hello":"world"}`)),
-		response:     createResponse(`{"hello":"world"}`, "application/json"),
-		check:        config.Check{JSONPath: map[string]config.Expect{"$.nonexist+": {Equals: "world"}}},
+		response:           createResponse(`{"hello":"world"}`, "application/json"),
+		check:              config.Check{JSONPath: map[string]config.Expect{"$.nonexist+": {Equals: "world"}}},
 	}, validationCheck{ErrorJsonPath, 1, "failed non-existing selector"}},
 	{&CheckContext{
 		responseBodyReader: bytes.NewReader([]byte(`{"hello":"world"}`)),
-		response:     createResponse(`{"hello": ["one","two"]}`, "application/json"),
-		check:        config.Check{JSONPath: map[string]config.Expect{"$.hello+": {Min: &[]int64{3}[0]}}},
+		response:           createResponse(`{"hello": ["one","two"]}`, "application/json"),
+		check:              config.Check{JSONPath: map[string]config.Expect{"$.hello+": {Min: &[]int64{3}[0]}}},
 	}, validationCheck{ErrorJsonPath, 1, "failed failed minimum selection"}},
 }
 

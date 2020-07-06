@@ -1,8 +1,8 @@
 package check
 
 import (
-	"testing"
 	"github.com/dreadl0ck/petze/config"
+	"testing"
 )
 
 var checkMinMaxCountTestCases = []struct {

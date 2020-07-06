@@ -3,6 +3,7 @@ package watch
 import (
 	"fmt"
 	"io/ioutil"
+	"strconv"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/dreadl0ck/petze/check"
@@ -10,6 +11,17 @@ import (
 )
 
 type ValidatorFunc func(ctx *CheckContext) (errs []Error)
+
+func ValidateStatusCode(ctx *CheckContext) (errs []Error) {
+	// handle status code checks
+	if ctx.check.StatusCode != 0 && ctx.response.StatusCode != int(ctx.check.StatusCode) {
+		errs = append(errs, Error{
+			Error: "unexpected status code: got " + ctx.response.Status + ", expected: " + strconv.FormatInt(ctx.check.StatusCode, 10),
+			Type:  ErrorTypeWrongHTTPStatusCode,
+		})
+	}
+	return
+}
 
 func ValidateJsonPath(ctx *CheckContext) (errs []Error) {
 	if ctx.check.JSONPath != nil {

@@ -6,7 +6,6 @@ import (
 	"github.com/dreadl0ck/petze/mail"
 	"net/http"
 	"net/url"
-
 	"time"
 
 	"io"
@@ -21,13 +20,16 @@ import (
 )
 
 func runSession(service *config.Service, r *Result, client *http.Client) error {
+
 	//log.Println("running session with session length:", len(service.Session))
-	// utils.JSONDump(service)
+	//spew.Dump(service)
+
 	endPointURL, errURL := service.GetURL()
 	if errURL != nil {
 		return errors.New("can not run session: " + errURL.Error())
 	}
 	for indexCall, call := range service.Session {
+
 		// copy URL
 		callURL := &url.URL{}
 		*callURL = *endPointURL
@@ -58,19 +60,30 @@ func runSession(service *config.Service, r *Result, client *http.Client) error {
 			return errNewRequest
 		}
 		start := time.Now()
+
+		// set the HTTP header fields specified for the call
+		for k, v := range call.Headers {
+			//fmt.Println("set header", k, v)
+			req.Header.Set(k, v)
+		}
+
+		// execute the HTTP request
 		response, errResponse := client.Do(req)
 		if errResponse != nil {
 			return errResponse
 		}
 		defer response.Body.Close()
 
+		// measure time
 		duration := time.Since(start)
 
+		// get reader for response body
 		responseBodyReader, readerErr := getResponseBodyReader(response)
 		if readerErr != nil {
 			return readerErr
 		}
 
+		// process all checks for the call
 		for indexCheck, chk := range call.Check {
 			ctx := &CheckContext{
 				response:           response,
@@ -83,12 +96,20 @@ func runSession(service *config.Service, r *Result, client *http.Client) error {
 				newErr.Comment = fmt.Sprint(chk.Comment, "@call[", indexCall, "].check[", indexCheck, "]")
 				r.Errors = append(r.Errors, newErr)
 			}
-			if len(r.Errors) > 0 && mail.IsInitialized() {
-				mail.Send("philipp.mieden@ymail.com", "whoops", mail.GenerateServiceMail())
-			}
 			responseBodyReader.Seek(0, io.SeekStart)
 		}
 
+		// if SMTP notifications are enabled
+		// send an email for all errors for each service
+		if len(r.Errors) > 0 && mail.IsInitialized() {
+			var buf bytes.Buffer
+			for _, e := range r.Errors {
+				buf.WriteString(fmt.Sprintln(e.Error, e.Type, e.Comment))
+			}
+			go func() {
+				mail.Send("philipp.mieden@ymail.com", "Error for Service: "+service.ID, mail.GenerateErrorMail(errors.New(buf.String()), ""))
+			}()
+		}
 	}
 	return nil
 }
@@ -110,6 +131,7 @@ type CheckContext struct {
 }
 
 var ContextValidators = []ValidatorFunc{
+	ValidateStatusCode,
 	ValidateJsonPath,
 	ValidateGoQuery,
 	ValidateDuration,

@@ -10,8 +10,8 @@ import (
 	"github.com/dreadl0ck/petze/config"
 	"github.com/julienschmidt/httprouter"
 
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/dreadl0ck/petze/exporter"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	log "github.com/sirupsen/logrus"
 )

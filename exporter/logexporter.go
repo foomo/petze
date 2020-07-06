@@ -1,8 +1,8 @@
 package exporter
 
 import (
-	log "github.com/sirupsen/logrus"
 	"github.com/dreadl0ck/petze/watch"
+	log "github.com/sirupsen/logrus"
 )
 
 func LogResultHandler(result watch.Result) {

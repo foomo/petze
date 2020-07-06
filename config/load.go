@@ -10,7 +10,7 @@ import (
 	"reflect"
 	"strings"
 
-	yaml "gopkg.in/yaml.v1"
+	"gopkg.in/yaml.v2"
 )
 
 func LoadServices(configDir string) (services map[string]*Service, err error) {
@@ -65,7 +65,7 @@ func load(configFile string, target interface{}) error {
 	if err != nil {
 		return err
 	}
-	yamlErr := yaml.Unmarshal(configBytes, target)
+	yamlErr := yaml.UnmarshalStrict(configBytes, target)
 	if yamlErr != nil {
 		return errors.New("could not unmarshal yaml file " + configFile + " : " + yamlErr.Error())
 	}

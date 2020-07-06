@@ -1,8 +1,8 @@
 package collector
 
 import (
-	"testing"
 	"github.com/dreadl0ck/petze/watch"
+	"testing"
 )
 
 func TestCollectorListeners(t *testing.T) {

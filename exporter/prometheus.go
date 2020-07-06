@@ -1,8 +1,8 @@
 package exporter
 
 import (
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/dreadl0ck/petze/watch"
+	"github.com/prometheus/client_golang/prometheus"
 	"time"
 )
 

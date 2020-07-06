@@ -109,7 +109,6 @@ func Watch(service *config.Service, chanResult chan Result) *Watcher {
 	w := &Watcher{
 		active:  true,
 		service: service,
-
 	}
 	go w.watchLoop(chanResult)
 	return w
@@ -289,8 +288,5 @@ func watch(service *config.Service, client *http.Client, errRecorder *dialerErrR
 
 	// r.addError(errors.New(fmt.Sprint("response time too slow:", runTimeMilliseconds, ", should not be more than:", maxRuntime)), ErrorTypeServerTooSlow)
 	//r.StatusCode = response.StatusCode
-	if response.StatusCode != http.StatusOK {
-		r.addError(errors.New(fmt.Sprint("unexpected status code: ", response.StatusCode)), ErrorTypeWrongHTTPStatusCode, "")
-	}
 	return
 }

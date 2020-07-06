@@ -25,10 +25,10 @@ type Check struct {
 	Comment     string
 	JSONPath    map[string]Expect `yaml:"json-path"`
 	Goquery     map[string]Expect
-	Header      map[string][]string
+	Headers     map[string]string
 	Regex       map[string]Expect
 	Duration    time.Duration
-	StatusCode  int64
+	StatusCode  int64  `yaml:"statuscode"`
 	ContentType string `yaml:"content-type"`
 }
 
@@ -39,7 +39,8 @@ type Call struct {
 	Data        interface{}
 	ContentType string `yaml:"content-type"`
 	Check       []Check
-	Header      map[string][]string
+	Headers     map[string]string
+	Comment     string
 }
 
 // Service a service to monitor
@@ -61,7 +62,7 @@ type Server struct {
 	SMTPUser   string `yaml:"smtpUser"`
 	SMTPPass   string `yaml:"smtpPass"`
 	SMTPServer string `yaml:"smtpServer"`
-	SMTPPort   int `yaml:"smtpPort"`
+	SMTPPort   int    `yaml:"smtpPort"`
 	SMTPFrom   string `yaml:"smtpFrom"`
 }
 

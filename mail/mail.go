@@ -147,24 +147,29 @@ func renderMail(mail hermes.Email) (html, plainText string, err error) {
 	return
 }
 
-func GenerateErrorMail(err error, errMsg string) hermes.Email {
+func GenerateErrorMail(err error, msg string) hermes.Email {
 
 	var errString string
 	if err != nil {
 		errString = err.Error()
 	}
 
+	var intros = []string{
+		"An error with one of the monitored services occurred:",
+		"Timestamp: " + time.Now().Format(timestampFormat),
+		"Errors: ",
+		errString,
+	}
+	if msg != "" {
+		intros = append(intros, "Message: "+msg)
+	}
+
 	return hermes.Email{
 		Body: hermes.Body{
 			Greeting:  "Dear",
-			Name:      "",
+			Name:      "Admin",
 			Signature: "kind regards",
-			Intros: []string{
-				"An error occurred:",
-				"Timestamp: " + time.Now().Format(timestampFormat),
-				"Error: " + errString,
-				"ErrorMessage: " + errMsg,
-			},
+			Intros:    intros,
 		},
 	}
 }
@@ -173,7 +178,7 @@ func GenerateServiceMail(msg ...string) hermes.Email {
 	return hermes.Email{
 		Body: hermes.Body{
 			Greeting:  "Dear",
-			Name:      "",
+			Name:      "Admin",
 			Signature: "kind regards",
 			Intros: []string{
 				"Service Event Info:",
