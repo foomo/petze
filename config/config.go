@@ -58,6 +58,11 @@ type Server struct {
 		Cert    string
 		Key     string
 	}
+	SMTPUser   string `yaml:"smtpUser"`
+	SMTPPass   string `yaml:"smtpPass"`
+	SMTPServer string `yaml:"smtpServer"`
+	SMTPPort   int `yaml:"smtpPort"`
+	SMTPFrom   string `yaml:"smtpFrom"`
 }
 
 func (s *Service) GetURL() (u *url.URL, e error) {

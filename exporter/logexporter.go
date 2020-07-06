@@ -2,7 +2,7 @@ package exporter
 
 import (
 	log "github.com/sirupsen/logrus"
-	"github.com/foomo/petze/watch"
+	"github.com/dreadl0ck/petze/watch"
 )
 
 func LogResultHandler(result watch.Result) {

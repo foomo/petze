@@ -5,8 +5,8 @@ import (
 	"io/ioutil"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/foomo/petze/check"
-	"github.com/foomo/petze/config"
+	"github.com/dreadl0ck/petze/check"
+	"github.com/dreadl0ck/petze/config"
 )
 
 type ValidatorFunc func(ctx *CheckContext) (errs []Error)

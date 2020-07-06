@@ -4,7 +4,7 @@ import (
 	"reflect"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/foomo/petze/config"
+	"github.com/dreadl0ck/petze/config"
 )
 
 func Goquery(doc *goquery.Document, selector string, expect config.Expect) (ok bool, info string) {

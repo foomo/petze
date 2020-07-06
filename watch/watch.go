@@ -13,7 +13,7 @@ import (
 
 	"reflect"
 
-	"github.com/foomo/petze/config"
+	"github.com/dreadl0ck/petze/config"
 
 	log "github.com/sirupsen/logrus"
 )

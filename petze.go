@@ -2,10 +2,11 @@ package main
 
 import (
 	"flag"
+	"github.com/dreadl0ck/petze/mail"
 	"os"
 
-	"github.com/foomo/petze/service"
-	"github.com/foomo/petze/config"
+	"github.com/dreadl0ck/petze/config"
+	"github.com/dreadl0ck/petze/service"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -31,6 +32,16 @@ func runServer(configurationDirectory string) {
 	serverConfig, err := config.LoadServer(configurationDirectory)
 	if err != nil {
 		log.Fatal(err)
+	}
+	if serverConfig.SMTPUser != "" {
+		// init mailer
+		mail.InitMailer(
+			serverConfig.SMTPServer,
+			serverConfig.SMTPUser,
+			serverConfig.SMTPPass,
+			serverConfig.SMTPFrom,
+			serverConfig.SMTPPort,
+		)
 	}
 	log.Info(service.Run(serverConfig, configurationDirectory))
 }

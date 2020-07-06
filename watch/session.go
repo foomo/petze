@@ -3,6 +3,7 @@ package watch
 import (
 	"errors"
 	"fmt"
+	"github.com/dreadl0ck/petze/mail"
 	"net/http"
 	"net/url"
 
@@ -16,7 +17,7 @@ import (
 
 	"io/ioutil"
 
-	"github.com/foomo/petze/config"
+	"github.com/dreadl0ck/petze/config"
 )
 
 func runSession(service *config.Service, r *Result, client *http.Client) error {
@@ -79,8 +80,11 @@ func runSession(service *config.Service, r *Result, client *http.Client) error {
 				duration:           duration,
 			}
 			for _, newErr := range checkResponse(ctx) {
-				newErr.Comment = fmt.Sprint(chk.Comment, " @call[", indexCall, "].check[", indexCheck, "]")
+				newErr.Comment = fmt.Sprint(chk.Comment, "@call[", indexCall, "].check[", indexCheck, "]")
 				r.Errors = append(r.Errors, newErr)
+			}
+			if len(r.Errors) > 0 && mail.IsInitialized() {
+				mail.Send("philipp.mieden@ymail.com", "whoops", mail.GenerateServiceMail())
 			}
 			responseBodyReader.Seek(0, io.SeekStart)
 		}

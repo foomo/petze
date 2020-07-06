@@ -3,7 +3,7 @@ package check
 import (
 	"fmt"
 
-	"github.com/foomo/petze/config"
+	"github.com/dreadl0ck/petze/config"
 )
 
 func checkExpectStringEquals(expect config.Expect, expected, actual string) (ok bool, info string) {

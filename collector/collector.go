@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/foomo/petze/config"
-	"github.com/foomo/petze/watch"
+	"github.com/dreadl0ck/petze/config"
+	"github.com/dreadl0ck/petze/watch"
 
 	log "github.com/sirupsen/logrus"
 )

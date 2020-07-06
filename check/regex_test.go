@@ -1,7 +1,7 @@
 package check
 
 import (
-	"github.com/foomo/petze/config"
+	"github.com/dreadl0ck/petze/config"
 	"testing"
 )
 

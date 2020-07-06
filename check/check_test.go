@@ -2,7 +2,7 @@ package check
 
 import (
 	"testing"
-	"github.com/foomo/petze/config"
+	"github.com/dreadl0ck/petze/config"
 )
 
 var checkMinMaxCountTestCases = []struct {

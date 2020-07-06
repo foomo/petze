@@ -4,8 +4,8 @@ import (
 	"reflect"
 
 	"github.com/Jeffail/gabs"
-	"github.com/NodePrime/jsonpath"
-	"github.com/foomo/petze/config"
+	"github.com/JumboInteractiveLimited/jsonpath"
+	"github.com/dreadl0ck/petze/config"
 
 	log "github.com/sirupsen/logrus"
 )

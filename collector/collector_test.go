@@ -2,7 +2,7 @@ package collector
 
 import (
 	"testing"
-	"github.com/foomo/petze/watch"
+	"github.com/dreadl0ck/petze/watch"
 )
 
 func TestCollectorListeners(t *testing.T) {
