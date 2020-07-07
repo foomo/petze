@@ -1,0 +1,22 @@
+endpoint: https://bestbytes.com
+interval: 1m
+session:
+  - uri: "/"
+    comment: home page visit
+    check:
+      - statuscode: 200
+      - duration: 250ms
+      - content-type: "text/html; charset=utf-8"
+  - uri: "/dataprotection"
+    comment: redirect from old url
+    check:
+      - statuscode: 308
+      - redirect: "https://bestbytes.com/datenschutz"
+      - duration: 250ms
+  - uri: "/"
+    scheme: "http"
+    comment: http page visit
+    check:
+      - statuscode: 307
+      - redirect: "https://bestbytes.com/"
+      - duration: 250ms

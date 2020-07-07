@@ -1,0 +1,8 @@
+endpoint: https://spiegel.de
+interval: 1m
+session:
+  - uri: "/"
+    comment: home page visit
+    check:
+      - statuscode: 301
+      - duration: 250ms
