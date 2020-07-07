@@ -2,11 +2,11 @@ package exporter
 
 import (
 	"github.com/dreadl0ck/petze/watch"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 func LogResultHandler(result watch.Result) {
-	logger := log.WithFields(log.Fields{
+	logger := logrus.WithFields(logrus.Fields{
 		"service_id": result.ID,
 		"runtime":    result.RunTime,
 		"timeout":    result.Timeout,
@@ -17,7 +17,10 @@ func LogResultHandler(result watch.Result) {
 			if err.Comment != "" {
 				logger = logger.WithField("comment", err.Comment)
 			}
-			logger.WithField("type", err.Type).Error(err.Error)
+			logger.WithFields(logrus.Fields{
+				"type": err.Type,
+				"location": err.Location,
+			}).Error(err.Error)
 		}
 	} else {
 		logger.Info("run completed without errors")

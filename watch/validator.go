@@ -20,6 +20,7 @@ func ValidateRedirects(ctx *CheckContext) (errs []Error) {
 				errs = append(errs, Error{
 					Error: ctx.call.URL + ": unexpected redirect URL: got " + url.String() + ", expected: " + ctx.check.Redirect,
 					Type:  ErrorTypeRedirectMismatch,
+					Comment: ctx.call.Comment,
 				})
 			}
 		}
@@ -33,6 +34,7 @@ func ValidateHeaders(ctx *CheckContext) (errs []Error) {
 			errs = append(errs, Error{
 				Error: ctx.call.URL + ": unexpected value for HTTP header " + k + ": got " + ctx.response.Header.Get(k) + ", expected: " + k,
 				Type:  ErrorTypeHeaderMismatch,
+				Comment: ctx.call.Comment,
 			})
 		}
 	}
@@ -45,6 +47,7 @@ func ValidateStatusCode(ctx *CheckContext) (errs []Error) {
 		errs = append(errs, Error{
 			Error: ctx.call.URL + ": unexpected status code: got " + ctx.response.Status + ", expected: " + strconv.FormatInt(ctx.check.StatusCode, 10),
 			Type:  ErrorTypeWrongHTTPStatusCode,
+			Comment: ctx.call.Comment,
 		})
 	}
 	return
@@ -74,12 +77,14 @@ func ValidateJsonPath(ctx *CheckContext) (errs []Error) {
 					errs = append(errs, Error{
 						Error: ctx.call.URL + ": " + info,
 						Type:  ErrorJsonPath,
+						Comment: ctx.call.Comment,
 					})
 				}
 			default:
 				errs = append(errs, Error{
 					Error: ctx.call.URL + ": data contentType: " + contentType + " is not supported (yet?)",
 					Type:  ErrorTypeNotImplemented,
+					Comment: ctx.call.Comment,
 				})
 			}
 		}
@@ -93,6 +98,7 @@ func ValidateDuration(ctx *CheckContext) (errs []Error) {
 			errs = append(errs, Error{
 				Error: fmt.Sprint(ctx.call.URL, ": call duration ", ctx.duration, " exceeded ", ctx.check.Duration),
 				Type:  ErrorTypeServerTooSlow,
+				Comment: ctx.call.Comment,
 			})
 		}
 	}
@@ -108,6 +114,7 @@ func ValidateGoQuery(ctx *CheckContext) (errs []Error) {
 			errs = append(errs, Error{
 				Error: ctx.call.URL + ": " + errDoc.Error(),
 				Type:  ErrorTypeGoQuery,
+				Comment: ctx.call.Comment,
 			})
 		} else {
 			for selector, expect := range ctx.check.Goquery {
@@ -116,6 +123,7 @@ func ValidateGoQuery(ctx *CheckContext) (errs []Error) {
 					errs = append(errs, Error{
 						Error: ctx.call.URL + ": " + info,
 						Type:  ErrorTypeGoQueryMismatch,
+						Comment: ctx.call.Comment,
 					})
 				}
 			}
@@ -131,6 +139,7 @@ func ValidateContentType(ctx *CheckContext) (errs []Error) {
 			errs = append(errs, Error{
 				Error: ctx.call.URL + ": unexpected Content-Type: \"" + contentType + "\", expected: \"" + ctx.check.ContentType + "\"",
 				Type:  ErrorTypeUnexpectedContentType,
+				Comment: ctx.call.Comment,
 			})
 		}
 	}
@@ -141,12 +150,12 @@ func ValidateRegex(ctx *CheckContext) (errs []Error) {
 	if ctx.check.Regex != nil {
 		data, errDataBytes := ioutil.ReadAll(ctx.responseBodyReader)
 		if errDataBytes != nil {
-			errs = append(errs, Error{Error: ctx.call.URL + ": could not read data from response: " + errDataBytes.Error()})
+			errs = append(errs, Error{Error: ctx.call.URL + ": could not read data from response: " + errDataBytes.Error(), Comment: ctx.call.Comment})
 			return
 		}
 		for regexString, expect := range ctx.check.Regex {
 			if ok, info := check.Regex(data, regexString, expect); ok == false {
-				errs = append(errs, Error{Error: ctx.call.URL + ": " + info, Type: ErrorRegex})
+				errs = append(errs, Error{Error: ctx.call.URL + ": " + info, Type: ErrorRegex, Comment: ctx.call.Comment})
 			}
 		}
 	}

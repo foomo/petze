@@ -1,7 +1,6 @@
 [![Travis CI](https://travis-ci.org/foomo/petze.svg?branch=master)](https://travis-ci.org/foomo/petze)
 
 - add support to match raw response against string or regex (eg to check robots file)
-- add check for redirects
 - add example config directory 
 - add support to check health of raw TCP / UDP services
 

@@ -106,7 +106,7 @@ func runSession(service *config.Service, r *Result, client *http.Client) error {
 				duration:           duration,
 			}
 			for _, newErr := range checkResponse(ctx) {
-				newErr.Comment = fmt.Sprint(chk.Comment, "@call[", indexCall, "].check[", indexCheck, "]")
+				newErr.Location = fmt.Sprint("@call[", indexCall, "].check[", indexCheck, "]")
 				r.Errors = append(r.Errors, newErr)
 			}
 			responseBodyReader.Seek(0, io.SeekStart)
