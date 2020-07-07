@@ -19,6 +19,8 @@ import (
 	"github.com/dreadl0ck/petze/config"
 )
 
+const defaultUserAgent = "Petze Service Monitor/1.0"
+
 func runSession(service *config.Service, r *Result, client *http.Client) error {
 
 	//log.Println("running session with session length:", len(service.Session))
@@ -61,6 +63,9 @@ func runSession(service *config.Service, r *Result, client *http.Client) error {
 			return errNewRequest
 		}
 		start := time.Now()
+
+		// set default user agent first, so it can be overwritten via the custom header fields if desired
+		req.Header.Set("User-Agent", defaultUserAgent)
 
 		// set the HTTP header fields specified for the call
 		for k, v := range call.Headers {
