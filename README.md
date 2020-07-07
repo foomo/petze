@@ -3,6 +3,7 @@
 - add support to match raw response against string or regex (eg to check robots file)
 - add check for redirects
 - add example config directory 
+- set petze user agent
 
 # Petze
 

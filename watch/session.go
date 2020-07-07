@@ -52,6 +52,7 @@ func runSession(service *config.Service, r *Result, client *http.Client) error {
 			if errDataBytes != nil {
 				return errors.New("could not encode data bytes: " + errDataBytes.Error())
 			}
+			//fmt.Println("JSON body", string(dataBytes))
 			body = bytes.NewBuffer(dataBytes)
 		}
 
@@ -131,6 +132,7 @@ type CheckContext struct {
 }
 
 var ContextValidators = []ValidatorFunc{
+	ValidateHeaders,
 	ValidateStatusCode,
 	ValidateJsonPath,
 	ValidateGoQuery,

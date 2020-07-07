@@ -12,6 +12,18 @@ import (
 
 type ValidatorFunc func(ctx *CheckContext) (errs []Error)
 
+func ValidateHeaders(ctx *CheckContext) (errs []Error) {
+	for k, v := range ctx.check.Headers {
+		if ctx.response.Header.Get(k) != v {
+			errs = append(errs, Error{
+				Error: "unexpected value for HTTP header " + k + ": got " + ctx.response.Header.Get(k) + ", expected: " + k,
+				Type:  ErrorTypeHeaderMismatch,
+			})
+		}
+	}
+	return
+}
+
 func ValidateStatusCode(ctx *CheckContext) (errs []Error) {
 	// handle status code checks
 	if ctx.check.StatusCode != 0 && ctx.response.StatusCode != int(ctx.check.StatusCode) {
