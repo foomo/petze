@@ -12,4 +12,5 @@ COPY files/cacert.pem /etc/ssl/certs/ca-certificates.crt
 
 COPY petze /usr/sbin/petze
 
-ENTRYPOINT ["/usr/sbin/petze"]
+# Start petze and search the config in "/etc/petzconf"
+ENTRYPOINT ["/usr/sbin/petze", "/etc/petzconf"]

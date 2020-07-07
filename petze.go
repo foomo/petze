@@ -17,9 +17,11 @@ func main() {
 	flag.BoolVar(&flagJsonOutput, "json-output", false, "specifies if the logging format is json or not")
 
 	flag.Parse()
-
 	initializeLogger()
 
+	if len(flag.Args()) == 0 {
+		log.Fatal("please pass the configuration directory as a first argument")
+	}
 	configurationDirectory := flag.Args()[0]
 	if stat, err := os.Stat(configurationDirectory); err == nil && stat.IsDir() {
 		runServer(configurationDirectory)
