@@ -132,6 +132,7 @@ func (w *Watcher) watchLoop(chanResult chan Result) {
 	for w.active {
 		r := watch(w.service, httpClient, errRecorder)
 		if w.active {
+			mailNotify(r, w.service)
 			chanResult <- *r
 			time.Sleep(w.service.Interval)
 		}
