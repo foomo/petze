@@ -82,7 +82,8 @@ session:
 
 ## SMTP Integration
 
-You can now get notification by Mail!
+You can now get notifications by Mail!
+
 A summary email with all errors for a service will be generated, in case a check failed.
 
 Add the following to your petze.yml:
@@ -101,7 +102,7 @@ Add the following to your petze.yml:
 Prepare your config folder and move it to: /etc/petzconf.
 The repository contains an example configuration in the _exampleConfig_ folder.
 
-Then pull and start the container, mounting the config folder:
+Then pull and start the container, mounting the config folder into the container:
 
     $ docker pull foomo/petze
     $ docker run -v /etc/petzconf:/etc/petzconf foomo/petze
