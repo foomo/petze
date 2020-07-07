@@ -9,9 +9,13 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"time"
 
 	"gopkg.in/yaml.v2"
 )
+
+// warn one week before the cert will expire by default
+const defaultTLSExpiryWarning = 7 * 24 * time.Hour
 
 func LoadServices(configDir string) (services map[string]*Service, err error) {
 	services = make(map[string]*Service)
@@ -52,6 +56,9 @@ func loadServicesFromDir(configDir string, targets map[string]*Service) error {
 				if call.Data != nil {
 					serviceConfig.Session[i].Data = fixYamlMapsForJSON(call.Data, 0)
 				}
+			}
+			if serviceConfig.TLSWarning == 0 {
+				serviceConfig.TLSWarning = defaultTLSExpiryWarning
 			}
 			return nil
 		}

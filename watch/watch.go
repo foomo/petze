@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/cookiejar"
+	"strconv"
 	"strings"
 	"time"
 
@@ -18,13 +19,15 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var typeDNSConfigErr = reflect.TypeOf(&net.DNSConfigError{})
-var typeDNSErr = reflect.TypeOf(&net.DNSError{})
-var typeOpErr = reflect.TypeOf(&net.OpError{})
-var typeX509CertificateInvalidError = reflect.TypeOf(x509.CertificateInvalidError{})
-var typeX509HostnameError = reflect.TypeOf(x509.HostnameError{})
-var typeX509SystemRootsError = reflect.TypeOf(x509.SystemRootsError{})
-var typeX509UnknownAuthorityError = reflect.TypeOf(x509.UnknownAuthorityError{})
+var (
+	typeDNSConfigErr                = reflect.TypeOf(&net.DNSConfigError{})
+	typeDNSErr                      = reflect.TypeOf(&net.DNSError{})
+	typeOpErr                       = reflect.TypeOf(&net.OpError{})
+	typeX509CertificateInvalidError = reflect.TypeOf(x509.CertificateInvalidError{})
+	typeX509HostnameError           = reflect.TypeOf(x509.HostnameError{})
+	typeX509SystemRootsError        = reflect.TypeOf(x509.SystemRootsError{})
+	typeX509UnknownAuthorityError   = reflect.TypeOf(x509.UnknownAuthorityError{})
+)
 
 type ErrorType string
 
@@ -124,7 +127,7 @@ func (w *Watcher) Stop() {
 }
 
 func (w *Watcher) watchLoop(chanResult chan Result) {
-	httpClient, errRecorder := getClientAndDialErrRecorder()
+	httpClient, errRecorder := w.getClientAndDialErrRecorder()
 
 	for w.active {
 		r := watch(w.service, httpClient, errRecorder)
@@ -135,7 +138,7 @@ func (w *Watcher) watchLoop(chanResult chan Result) {
 	}
 }
 
-func getClientAndDialErrRecorder() (client *http.Client, errRecorder *dialerErrRecorder) {
+func (w *Watcher) getClientAndDialErrRecorder() (client *http.Client, errRecorder *dialerErrRecorder) {
 	errRecorder = &dialerErrRecorder{
 		errors: []Error{},
 	}
@@ -151,9 +154,8 @@ func getClientAndDialErrRecorder() (client *http.Client, errRecorder *dialerErrR
 			connectionState := tlsConn.ConnectionState()
 			for _, cert := range connectionState.PeerCertificates {
 				durationUntilExpiry := cert.NotAfter.Sub(time.Now())
-				if durationUntilExpiry < time.Hour*7*24 {
-					// well in less than 24 h is worth an error
-					errRecorder.errors = addError(errRecorder.errors, errors.New(fmt.Sprint("cert CN=\"", cert.Subject.CommonName, "\" is expiring in less than 24h: ", cert.NotAfter, ", left: ", durationUntilExpiry)), ErrorTypeCertificateIsExpiring, "")
+				if durationUntilExpiry < w.service.TLSWarning {
+					errRecorder.errors = addError(errRecorder.errors, errors.New(fmt.Sprint("cert CN=\"", cert.Subject.CommonName, "\" is expiring in less than "+strconv.FormatFloat(w.service.TLSWarning.Hours(), 'f', 0, 64)+"h: ", cert.NotAfter, ", left: ", strconv.FormatFloat(durationUntilExpiry.Hours(), 'f', 0, 64))), ErrorTypeCertificateIsExpiring, "")
 				}
 			}
 			conn = tlsConn

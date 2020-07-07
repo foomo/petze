@@ -91,7 +91,7 @@ func Send(to string, subject string, mail hermes.Email) {
 		return
 	}
 
-	cLog.Info("sending email")
+	//cLog.Info("sending email")
 
 	if m.server == "fake" {
 		cLog.Info("running locally, not sending email")
