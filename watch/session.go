@@ -112,17 +112,17 @@ func runSession(service *config.Service, r *Result, client *http.Client) error {
 			responseBodyReader.Seek(0, io.SeekStart)
 		}
 
-		// if SMTP notifications are enabled
-		// send an email for all errors for each service
-		if len(r.Errors) > 0 && mail.IsInitialized() {
-			var buf bytes.Buffer
-			for _, e := range r.Errors {
-				buf.WriteString(fmt.Sprintln(e.Error, e.Type, e.Comment))
-			}
-			go func() {
-				mail.Send("philipp.mieden@ymail.com", "Error for Service: "+service.ID, mail.GenerateErrorMail(errors.New(buf.String()), ""))
-			}()
+	}
+	// if SMTP notifications are enabled
+	// send an email for all errors for each service
+	if len(r.Errors) > 0 && mail.IsInitialized() {
+		var buf bytes.Buffer
+		for _, e := range r.Errors {
+			buf.WriteString(fmt.Sprintln(e.Error, "type:", e.Type, "comment:", e.Comment))
 		}
+		go func() {
+			mail.Send("", "Error for Service: "+service.ID, mail.GenerateErrorMail(errors.New(buf.String()), ""))
+		}()
 	}
 	return nil
 }

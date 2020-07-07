@@ -18,7 +18,7 @@ func LogResultHandler(result watch.Result) {
 				logger = logger.WithField("comment", err.Comment)
 			}
 			logger.WithFields(logrus.Fields{
-				"type": err.Type,
+				"type":     err.Type,
 				"location": err.Location,
 			}).Error(err.Error)
 		}

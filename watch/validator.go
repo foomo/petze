@@ -19,8 +19,8 @@ func ValidateRedirects(ctx *CheckContext) (errs []Error) {
 		if err == nil {
 			if url.String() != ctx.check.Redirect {
 				errs = append(errs, Error{
-					Error: ctx.call.URL + ": unexpected redirect URL: got " + url.String() + ", expected: " + ctx.check.Redirect,
-					Type:  ErrorTypeRedirectMismatch,
+					Error:   ctx.call.URL + ": unexpected redirect URL: got " + url.String() + ", expected: " + ctx.check.Redirect,
+					Type:    ErrorTypeRedirectMismatch,
 					Comment: ctx.call.Comment,
 				})
 			}
@@ -33,8 +33,8 @@ func ValidateHeaders(ctx *CheckContext) (errs []Error) {
 	for k, v := range ctx.check.Headers {
 		if ctx.response.Header.Get(k) != v {
 			errs = append(errs, Error{
-				Error: ctx.call.URL + ": unexpected value for HTTP header " + k + ": got " + ctx.response.Header.Get(k) + ", expected: " + k,
-				Type:  ErrorTypeHeaderMismatch,
+				Error:   ctx.call.URL + ": unexpected value for HTTP header " + k + ": got " + ctx.response.Header.Get(k) + ", expected: " + k,
+				Type:    ErrorTypeHeaderMismatch,
 				Comment: ctx.call.Comment,
 			})
 		}
@@ -46,8 +46,8 @@ func ValidateStatusCode(ctx *CheckContext) (errs []Error) {
 	// handle status code checks
 	if ctx.check.StatusCode != 0 && ctx.response.StatusCode != int(ctx.check.StatusCode) {
 		errs = append(errs, Error{
-			Error: ctx.call.URL + ": unexpected status code: got " + ctx.response.Status + ", expected: " + strconv.FormatInt(ctx.check.StatusCode, 10),
-			Type:  ErrorTypeWrongHTTPStatusCode,
+			Error:   ctx.call.URL + ": unexpected status code: got " + ctx.response.Status + ", expected: " + strconv.FormatInt(ctx.check.StatusCode, 10),
+			Type:    ErrorTypeWrongHTTPStatusCode,
 			Comment: ctx.call.Comment,
 		})
 	}
@@ -76,15 +76,15 @@ func ValidateJsonPath(ctx *CheckContext) (errs []Error) {
 				ok, info := check.JSONPath(dataBytes, selector, expect)
 				if !ok {
 					errs = append(errs, Error{
-						Error: ctx.call.URL + ": " + info,
-						Type:  ErrorJsonPath,
+						Error:   ctx.call.URL + ": " + info,
+						Type:    ErrorJsonPath,
 						Comment: ctx.call.Comment,
 					})
 				}
 			default:
 				errs = append(errs, Error{
-					Error: ctx.call.URL + ": data contentType: " + contentType + " is not supported (yet?)",
-					Type:  ErrorTypeNotImplemented,
+					Error:   ctx.call.URL + ": data contentType: " + contentType + " is not supported (yet?)",
+					Type:    ErrorTypeNotImplemented,
 					Comment: ctx.call.Comment,
 				})
 			}
@@ -97,8 +97,8 @@ func ValidateDuration(ctx *CheckContext) (errs []Error) {
 	if ctx.check.Duration > 0 {
 		if ctx.duration > ctx.check.Duration {
 			errs = append(errs, Error{
-				Error: fmt.Sprint(ctx.call.URL, ": call duration ", ctx.duration, " exceeded ", ctx.check.Duration),
-				Type:  ErrorTypeServerTooSlow,
+				Error:   fmt.Sprint(ctx.call.URL, ": call duration ", ctx.duration, " exceeded ", ctx.check.Duration),
+				Type:    ErrorTypeServerTooSlow,
 				Comment: ctx.call.Comment,
 			})
 		}
@@ -113,8 +113,8 @@ func ValidateGoQuery(ctx *CheckContext) (errs []Error) {
 		doc, errDoc := goquery.NewDocumentFromReader(ctx.responseBodyReader)
 		if errDoc != nil {
 			errs = append(errs, Error{
-				Error: ctx.call.URL + ": " + errDoc.Error(),
-				Type:  ErrorTypeGoQuery,
+				Error:   ctx.call.URL + ": " + errDoc.Error(),
+				Type:    ErrorTypeGoQuery,
 				Comment: ctx.call.Comment,
 			})
 		} else {
@@ -122,8 +122,8 @@ func ValidateGoQuery(ctx *CheckContext) (errs []Error) {
 				ok, info := check.Goquery(doc, selector, expect)
 				if !ok {
 					errs = append(errs, Error{
-						Error: ctx.call.URL + ": " + info,
-						Type:  ErrorTypeGoQueryMismatch,
+						Error:   ctx.call.URL + ": " + info,
+						Type:    ErrorTypeGoQueryMismatch,
 						Comment: ctx.call.Comment,
 					})
 				}
@@ -138,8 +138,8 @@ func ValidateContentType(ctx *CheckContext) (errs []Error) {
 		contentType := ctx.response.Header.Get("Content-Type")
 		if contentType != ctx.check.ContentType {
 			errs = append(errs, Error{
-				Error: ctx.call.URL + ": unexpected Content-Type: \"" + contentType + "\", expected: \"" + ctx.check.ContentType + "\"",
-				Type:  ErrorTypeUnexpectedContentType,
+				Error:   ctx.call.URL + ": unexpected Content-Type: \"" + contentType + "\", expected: \"" + ctx.check.ContentType + "\"",
+				Type:    ErrorTypeUnexpectedContentType,
 				Comment: ctx.call.Comment,
 			})
 		}
@@ -173,8 +173,8 @@ func ValidateMatchReply(ctx *CheckContext) (errs []Error) {
 		}
 		if strings.TrimSpace(string(data)) != strings.TrimSpace(ctx.check.MatchReply) {
 			errs = append(errs, Error{
-				Error: ctx.call.URL + ": unexpected reply: got " + string(data) + ", expected: " + ctx.check.MatchReply,
-				Type:  ErrorTypeReplyMismatch,
+				Error:   ctx.call.URL + ": unexpected reply: got " + string(data) + ", expected: " + ctx.check.MatchReply,
+				Type:    ErrorTypeReplyMismatch,
 				Comment: ctx.call.Comment,
 			})
 		}

@@ -2,8 +2,10 @@
 address: 127.0.0.1:8080
 
 # configure SMTP notifications
-smtpServer: smtp-relay.sendinblue.com
-smtpUser: you@mail.com
-smtpPass: yourpassword
-smtpPort: 465
-smtpFrom: usertonotify@mail.com
+smtp:
+  server: smtp-relay.yourprovider.com
+  user: you@mail.com
+  pass: yourpassword
+  port: 465
+  from: replyto@mail.com
+  to: usertonotify@mail.com

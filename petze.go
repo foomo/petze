@@ -33,14 +33,15 @@ func runServer(configurationDirectory string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if serverConfig.SMTPUser != "" {
+	if serverConfig.SMTP != nil {
 		// init mailer
 		mail.InitMailer(
-			serverConfig.SMTPServer,
-			serverConfig.SMTPUser,
-			serverConfig.SMTPPass,
-			serverConfig.SMTPFrom,
-			serverConfig.SMTPPort,
+			serverConfig.SMTP.Server,
+			serverConfig.SMTP.User,
+			serverConfig.SMTP.Pass,
+			serverConfig.SMTP.From,
+			serverConfig.SMTP.Port,
+			serverConfig.SMTP.To,
 		)
 	}
 	log.Info(service.Run(serverConfig, configurationDirectory))

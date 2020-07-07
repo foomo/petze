@@ -56,9 +56,9 @@ const (
 )
 
 type Error struct {
-	Error   string    `json:"error"`
-	Type    ErrorType `json:"type"`
-	Comment string    `json:"comment,omitempty"`
+	Error    string    `json:"error"`
+	Type     ErrorType `json:"type"`
+	Comment  string    `json:"comment,omitempty"`
 	Location string    `json:"location,omitempty"`
 }
 

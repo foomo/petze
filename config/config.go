@@ -8,10 +8,9 @@ import (
 )
 
 const (
-	ContentTypeJSON = "application/json"
+	ContentTypeJSON  = "application/json"
+	serverConfigFile = "petze.yml"
 )
-
-const serverConfigFile = "petze.yml"
 
 type Expect struct {
 	Max      *int64
@@ -62,11 +61,14 @@ type Server struct {
 		Cert    string
 		Key     string
 	}
-	SMTPUser   string `yaml:"smtpUser"`
-	SMTPPass   string `yaml:"smtpPass"`
-	SMTPServer string `yaml:"smtpServer"`
-	SMTPPort   int    `yaml:"smtpPort"`
-	SMTPFrom   string `yaml:"smtpFrom"`
+	SMTP *struct {
+		User   string
+		Pass   string
+		Server string
+		Port   int
+		From   string
+		To     string
+	}
 }
 
 func (s *Service) GetURL() (u *url.URL, e error) {
