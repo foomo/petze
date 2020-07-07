@@ -171,9 +171,20 @@ func ValidateMatchReply(ctx *CheckContext) (errs []Error) {
 			errs = append(errs, Error{Error: ctx.call.URL + ": could not read data from response: " + errDataBytes.Error(), Comment: ctx.call.Comment})
 			return
 		}
+		var (
+			expected = ctx.check.MatchReply
+			reply = string(data)
+			maxDisplayLength = 20
+		)
+		if len(expected) > maxDisplayLength {
+			expected = expected[:maxDisplayLength] + "..."
+		}
+		if len(reply) > maxDisplayLength {
+			reply = reply[:maxDisplayLength] + "..."
+		}
 		if strings.TrimSpace(string(data)) != strings.TrimSpace(ctx.check.MatchReply) {
 			errs = append(errs, Error{
-				Error:   ctx.call.URL + ": unexpected reply: got " + string(data) + ", expected: " + ctx.check.MatchReply,
+				Error:   ctx.call.URL + ": unexpected reply: got " + reply + ", expected: " + expected,
 				Type:    ErrorTypeReplyMismatch,
 				Comment: ctx.call.Comment,
 			})

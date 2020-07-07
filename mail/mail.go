@@ -113,7 +113,7 @@ func Send(to string, subject string, mail hermes.Email) {
 		// prevent loop
 		if to != m.from {
 			// notify grand master
-			Send(m.from, "[Mail Error] "+subject+" to "+to, GenerateErrorMail(err, "failed to send mail"))
+			Send(m.from, "[Mail Error] "+subject+" to "+to, GenerateErrorMail([]error{err}, "failed to send mail"))
 		}
 	}
 }
@@ -153,21 +153,20 @@ func renderMail(mail hermes.Email) (html, plainText string, err error) {
 	return
 }
 
-func GenerateErrorMail(err error, msg string) hermes.Email {
-
-	var errString string
-	if err != nil {
-		errString = err.Error()
-	}
+func GenerateErrorMail(errs []error, msg string) hermes.Email {
 
 	var intros = []string{
 		"An error with one of the monitored services occurred:",
 		"Timestamp: " + time.Now().Format(timestampFormat),
-		"Errors: ",
-		errString,
 	}
 	if msg != "" {
 		intros = append(intros, "Message: "+msg)
+	}
+	if len(errs) > 0 {
+		intros = append(intros, "Errors: ")
+		for _, e := range errs {
+			intros = append(intros, e.Error())
+		}
 	}
 
 	return hermes.Email{

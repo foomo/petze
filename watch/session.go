@@ -119,12 +119,16 @@ func mailNotify(r *Result, service *config.Service) {
 	// if SMTP notifications are enabled
 	// send an email for all errors for each service
 	if len(r.Errors) > 0 && mail.IsInitialized() {
-		var buf bytes.Buffer
+		var errs []error
 		for _, e := range r.Errors {
-			buf.WriteString(fmt.Sprintln(e.Error, "type:", e.Type, "comment:", e.Comment))
+			if len(e.Comment) > 0 {
+				errs = append(errs, errors.New(fmt.Sprintln("-", e.Error, "type:", e.Type, "comment:", e.Comment)))
+			} else {
+				errs = append(errs, errors.New(fmt.Sprintln("-", e.Error, "type:", e.Type)))
+			}
 		}
 		go func() {
-			mail.Send("", "Error for Service: "+service.ID, mail.GenerateErrorMail(errors.New(buf.String()), ""))
+			mail.Send("", "Error for Service: "+service.ID, mail.GenerateErrorMail(errs, ""))
 		}()
 	}
 }
