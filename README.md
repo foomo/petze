@@ -42,14 +42,11 @@ basicauthfile: path/to/basic-auth-file
 
 Any other files with a .yml suffix will be treated as service configurations. It is strongly encouraged to organize them in folder structures. These will be refected in the service ids.
 
-
-
-
-
 ```yaml
 ---
 endpoint: http://www.bestbytes.de
 interval: 5m
+tlswarning: 128h # overwrite the default warning of one week before expiry for this service
 # run requests in a session, with cookies
 session:
   - uri: "/"
@@ -72,7 +69,7 @@ session:
     check:
       - content-type: application/json
       - duration: 100ms
-      - header:
+      - headers:
           "X-Test": "foo"
       - json-path:
         # this is a json path expression
@@ -81,6 +78,35 @@ session:
   - uri: "/another/path"
     check:
       - duration: 100ms
+      - redirect: "https://myservice.com/asdf" # match the location for checking redirects
+      - match-reply: "asdf" # match the raw response string
 
 ```
 
+## SMTP Integration
+
+You can now get notification by Mail!
+A summary email with all errors for a service will be generated, in case a check failed.
+
+Add the following to your petze.yml:
+
+    # configure SMTP notifications
+    smtp:
+      server: smtp-relay.yourprovider.com
+      user: you@mail.com
+      pass: yourpassword
+      port: 465
+      from: replyto@mail.com
+      to: usertonotify@mail.com 
+
+## Docker Usage
+
+Prepare your config folder and move it to: /etc/petzconf.
+The repository contains an example configuration in the _exampleConfig_ folder.
+
+Then pull and start the container, mounting the config folder:
+
+    $ docker pull foomo/petze
+    $ docker run -v /etc/petzconf:/etc/petzconf foomo/petze
+
+Happy monitoring!
