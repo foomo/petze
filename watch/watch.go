@@ -176,7 +176,7 @@ func (w *Watcher) getClientAndDialErrRecorder() (client *http.Client, errRecorde
 				systemRootsError := tlsErr.(x509.SystemRootsError)
 				errRecorder.tlsSystemRootsError = &systemRootsError
 			default:
-				log.Error("unknown tls error", reflect.TypeOf(tlsErr), tlsErr)
+				log.Debug("unknown tls error", reflect.TypeOf(tlsErr), tlsErr)
 			}
 		}
 		return conn, tlsErr
