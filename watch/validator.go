@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"strconv"
+	"strings"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/dreadl0ck/petze/check"
@@ -157,6 +158,25 @@ func ValidateRegex(ctx *CheckContext) (errs []Error) {
 			if ok, info := check.Regex(data, regexString, expect); ok == false {
 				errs = append(errs, Error{Error: ctx.call.URL + ": " + info, Type: ErrorRegex, Comment: ctx.call.Comment})
 			}
+		}
+	}
+	return
+}
+
+func ValidateMatchReply(ctx *CheckContext) (errs []Error) {
+	if len(ctx.check.MatchReply) > 0 {
+
+		data, errDataBytes := ioutil.ReadAll(ctx.responseBodyReader)
+		if errDataBytes != nil {
+			errs = append(errs, Error{Error: ctx.call.URL + ": could not read data from response: " + errDataBytes.Error(), Comment: ctx.call.Comment})
+			return
+		}
+		if strings.TrimSpace(string(data)) != strings.TrimSpace(ctx.check.MatchReply) {
+			errs = append(errs, Error{
+				Error: ctx.call.URL + ": unexpected reply: got " + string(data) + ", expected: " + ctx.check.MatchReply,
+				Type:  ErrorTypeReplyMismatch,
+				Comment: ctx.call.Comment,
+			})
 		}
 	}
 	return

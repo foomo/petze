@@ -1,9 +1,5 @@
 [![Travis CI](https://travis-ci.org/foomo/petze.svg?branch=master)](https://travis-ci.org/foomo/petze)
 
-- add support to match raw response against string or regex (eg to check robots file)
-- add example config directory 
-- add support to check health of raw TCP / UDP services
-
 # Petze
 
 **Petze monitors web sites and services**. It exports [prometheus.io](https://promtheus.io) metrics and writes a [logrus](https://github.com/Sirupsen/logrus) log.

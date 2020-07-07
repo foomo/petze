@@ -51,7 +51,8 @@ const (
 	ErrorRegex                               = "regexError"
 	ErrorBadResponseBody                     = "badResponseBody"
 	ErrorTypeHeaderMismatch                  = "headerMismatch"
-	ErrorTypeRedirectMismatch                  = "redirectMismatch"
+	ErrorTypeRedirectMismatch                = "redirectMismatch"
+	ErrorTypeReplyMismatch                   = "replyMismatch"
 )
 
 type Error struct {

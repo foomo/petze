@@ -152,6 +152,7 @@ var ContextValidators = []ValidatorFunc{
 	ValidateDuration,
 	ValidateContentType,
 	ValidateRegex,
+	ValidateMatchReply,
 }
 
 func checkResponse(ctx *CheckContext) []Error {

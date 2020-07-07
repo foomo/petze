@@ -31,6 +31,7 @@ type Check struct {
 	StatusCode  int64  `yaml:"statuscode"` // TODO: unify naming
 	ContentType string `yaml:"content-type"`
 	Redirect    string
+	MatchReply  string `yaml:"match-reply"`
 }
 
 type Call struct {
