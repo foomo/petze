@@ -25,7 +25,6 @@ Petze is configured from files in a configuration folder.
 ## Main config file petze.yml
 
 ```yaml
-# 
 # optional http address if you want to run without tls
 address: server-name.net:8080
 # running on tls
@@ -35,7 +34,6 @@ tls:
   key: path/to/key.pem
 # optional basic auth
 basicauthfile: path/to/basic-auth-file
-
 ```
 
 ## Service configurations
@@ -43,7 +41,6 @@ basicauthfile: path/to/basic-auth-file
 Any other files with a .yml suffix will be treated as service configurations. It is strongly encouraged to organize them in folder structures. These will be refected in the service ids.
 
 ```yaml
----
 endpoint: http://www.bestbytes.de
 interval: 5m
 tlswarning: 128h # overwrite the default warning of one week before expiry for this service
