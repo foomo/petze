@@ -1,10 +1,6 @@
 language: go
 go:
-  - 1.8
-
-cache:
-  directories:
-    - vendor
+  - 1.14.4
 
 sudo: required
 
@@ -12,9 +8,7 @@ services:
   - docker
 
 script:
-  - go get github.com/Masterminds/glide
-  - glide install
-  - go test -v $(glide nv)
+  - go test -v ./...
 
 after_success:
   - if [ "$TRAVIS_BRANCH" == "master" ]; then
