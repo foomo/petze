@@ -28,11 +28,13 @@ type Check struct {
 	Headers     map[string]string
 	Regex       map[string]Expect
 	Duration    time.Duration
-	StatusCode  int64  `yaml:"statuscode"`
+	StatusCode  int64  `yaml:"statuscode"` // TODO: unify naming
 	ContentType string `yaml:"content-type"`
+	Redirect    string
 }
 
 type Call struct {
+	Scheme      string // allow to overwrite scheme
 	URI         string
 	URL         string
 	Method      string

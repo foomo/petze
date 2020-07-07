@@ -51,6 +51,7 @@ const (
 	ErrorRegex                               = "regexError"
 	ErrorBadResponseBody                     = "badResponseBody"
 	ErrorTypeHeaderMismatch                  = "headerMismatch"
+	ErrorTypeRedirectMismatch                  = "redirectMismatch"
 )
 
 type Error struct {
@@ -205,6 +206,10 @@ func getClientAndDialErrRecorder() (client *http.Client, errRecorder *dialerErrR
 			DialTLS:             dialTLS,
 			TLSHandshakeTimeout: 10 * time.Second,
 			TLSClientConfig:     tlsConfig,
+		},
+		// do not follow redirects to allow checking the status code
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
 		},
 	}
 	return

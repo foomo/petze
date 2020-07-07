@@ -44,6 +44,13 @@ func runSession(service *config.Service, r *Result, client *http.Client) error {
 		callURL.Path = uriURL.Path
 		callURL.RawQuery = uriURL.RawQuery
 
+		// overwrite scheme if desired
+		if call.Scheme != "" {
+			callURL.Scheme = call.Scheme
+		}
+
+		call.URL = callURL.String()
+
 		var body io.Reader
 		method := http.MethodGet
 		if call.Method != "" {
@@ -137,6 +144,7 @@ type CheckContext struct {
 }
 
 var ContextValidators = []ValidatorFunc{
+	ValidateRedirects,
 	ValidateHeaders,
 	ValidateStatusCode,
 	ValidateJsonPath,
