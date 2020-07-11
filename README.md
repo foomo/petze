@@ -2,13 +2,13 @@
 
 # Petze
 
-**Petze monitors web sites and services**. It exports [prometheus.io](https://promtheus.io) metrics and writes a [logrus](https://github.com/Sirupsen/logrus) log.
+**Petze monitors web sites and services**. It exports [prometheus.io](https://prometheus.io) metrics and writes a [logrus](https://github.com/Sirupsen/logrus) log.
 
 One instance of petze is designed to monitor many services at little cost.
 
 # Motivation
 
-While there is a vast amount of monitoring solutions out there I still felt there was somthing simplistic missing, that would play nicely with [prometheus.io](https://promtheus.io), which I have come to appreciate very much.
+While there is a vast amount of monitoring solutions out there I still felt there was somthing simplistic missing, that would play nicely with [prometheus.io](https://prometheus.io), which I have come to appreciate very much.
 
 # Status
 
