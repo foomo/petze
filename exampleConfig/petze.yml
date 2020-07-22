@@ -9,3 +9,5 @@ smtp:
   port: 465
   from: replyto@mail.com
   to: usertonotify@mail.com
+
+slack: https://hooks.slack.com/services/custom-parameters
