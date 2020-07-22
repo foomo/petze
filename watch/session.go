@@ -115,9 +115,11 @@ func runSession(service *config.Service, r *Result, client *http.Client) error {
 	return nil
 }
 
+var hasBeenNotified = false
+
 func mailNotify(r *Result, service *config.Service) {
 	// if SMTP notifications are enabled
-	// send an email for all errors for each service
+	// send an email when a service goes down
 	if len(r.Errors) > 0 && mail.IsInitialized() {
 		var errs []error
 		for _, e := range r.Errors {
@@ -127,9 +129,16 @@ func mailNotify(r *Result, service *config.Service) {
 				errs = append(errs, errors.New(fmt.Sprintln("-", e.Error, "type:", e.Type)))
 			}
 		}
-		go func() {
-			mail.Send("", "Error for Service: "+service.ID, mail.GenerateErrorMail(errs, ""))
-		}()
+
+		if !hasBeenNotified {
+			go func() {
+				mail.Send("", "Error for Service: "+service.ID, mail.GenerateErrorMail(errs, ""))
+			}()
+			hasBeenNotified = true
+		}
+	} else {
+		// reset boolean when service goes back up
+		hasBeenNotified = false
 	}
 }
 
