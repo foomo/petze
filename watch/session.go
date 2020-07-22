@@ -128,7 +128,7 @@ func mailNotify(r *Result, service *config.Service) {
 			}
 		}
 		go func() {
-			mail.Send("", "Error for Service: "+service.ID, mail.GenerateErrorMail(errs, ""))
+			mail.SendMail("Error for Service: "+service.ID, mail.GenerateErrorMail(errs, ""))
 		}()
 	}
 }
