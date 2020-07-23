@@ -69,7 +69,7 @@ type Server struct {
 		Server string
 		Port   int
 		From   string
-		To     string
+		To     []string
 	}
 	Slack string
 }
