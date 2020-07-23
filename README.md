@@ -4,7 +4,11 @@
 
 # Petze
 
-**Petze monitors web sites and services**. It exports [prometheus.io](https://prometheus.io) metrics and writes a [logrus](https://github.com/Sirupsen/logrus) log.
+**Petze monitors web sites and services**.
+
+It exports [prometheus](https://prometheus.io) metrics and writes [logrus](https://github.com/sirupsen/logrus) logs.
+Additionally, petze offers a convenient way to receive notifications via [EMail](#SMTP-Integration), [Slack](#Slack-Integration) or [SMS](#SMS-Integration),
+without the need to operate a big enterprise monitoring stack.
 
 One instance of petze is designed to monitor many services at little cost.
 
