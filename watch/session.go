@@ -17,6 +17,7 @@ import (
 	"io/ioutil"
 
 	"github.com/dreadl0ck/petze/config"
+	"github.com/dreadl0ck/petze/slack"
 )
 
 const defaultUserAgent = "Petze Service Monitor/1.0"
@@ -132,13 +133,31 @@ func mailNotify(r *Result, service *config.Service) {
 
 		if !hasBeenNotified {
 			go func() {
-				mail.Send("", "Error for Service: "+service.ID, mail.GenerateErrorMail(errs, ""))
+  			mail.SendMail("Error for Service: "+service.ID, mail.GenerateErrorMail(errs, ""))
 			}()
 			hasBeenNotified = true
+		} else {
+      // reset boolean when service goes back up
+      hasBeenNotified = false
+	  } 
+  }
+}
+
+func slackNotify(r *Result) {
+	// if Slack notifications are enabled
+	// send a message for all errors for each service
+	if len(r.Errors) > 0 {
+		var errs []error
+		for _, e := range r.Errors {
+			if len(e.Comment) > 0 {
+				errs = append(errs, errors.New(fmt.Sprintln("-", e.Error, "type:", e.Type, "comment:", e.Comment)))
+			} else {
+				errs = append(errs, errors.New(fmt.Sprintln("-", e.Error, "type:", e.Type)))
+			}
 		}
-	} else {
-		// reset boolean when service goes back up
-		hasBeenNotified = false
+		go func() {
+			slack.Send(slack.GenerateErrorMessage(errs))
+		}()
 	}
 }
 
