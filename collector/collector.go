@@ -69,15 +69,37 @@ func (c *Collector) collect() {
 			c.chanGetResults <- resultsCopy
 		case newServices := <-c.chanServices:
 			c.services = newServices
+
+			var lastErrors = make(map[string][]watch.Error)
+
 			// stop old watchers
 			for oldWatcherID, oldWatcher := range c.watchers {
 				oldWatcher.Stop()
+
+				// if the service had errors before updating the config
+				// store them in a map so we can transfer them to the updated watchers
+				if len(oldWatcher.LastErrors()) > 0 {
+					lastErrors[oldWatcherID] = oldWatcher.LastErrors()
+				}
+
 				delete(c.watchers, oldWatcherID)
 			}
-			// setup new watches
+
+			// setup new watchers
 			for serviceID, service := range c.services {
-				c.watchers[serviceID] = watch.Watch(service, chanResult)
-				_, ok := results[serviceID]
+				// check if the service had errors before being updated
+				lastErrs, ok := lastErrors[serviceID]
+				if ok {
+					// transfer errors to new watcher
+					newWatcher := watch.Watch(service, chanResult)
+					newWatcher.SetLastErrors(lastErrs)
+					c.watchers[serviceID] = newWatcher
+				} else {
+					// no errors - init a new watcher
+					c.watchers[serviceID] = watch.Watch(service, chanResult)
+				}
+				// reset stored results
+				_, ok = results[serviceID]
 				if !ok {
 					results[serviceID] = []watch.Result{}
 				}

@@ -132,6 +132,17 @@ func (w *Watcher) Stop() {
 	w.active = false
 }
 
+func (w *Watcher) LastErrors() []Error {
+	if w.lastErrors != nil {
+		return w.lastErrors
+	}
+	return nil
+}
+
+func (w *Watcher) SetLastErrors(errs []Error) {
+	w.lastErrors = errs
+}
+
 func (w *Watcher) watchLoop(chanResult chan Result) {
 	httpClient, errRecorder := w.getClientAndDialErrRecorder()
 
