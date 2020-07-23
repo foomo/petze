@@ -52,7 +52,7 @@ type Service struct {
 	Interval time.Duration
 	// Generate an error if the TLS certificate will expire in less then
 	TLSWarning time.Duration `yaml:"tlswarning"`
-	Session   []Call
+	Session    []Call
 }
 
 type Server struct {

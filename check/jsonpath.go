@@ -5,7 +5,7 @@ import (
 
 	"github.com/Jeffail/gabs"
 	"github.com/JumboInteractiveLimited/jsonpath"
-	"github.com/dreadl0ck/petze/config"
+	"github.com/foomo/petze/config"
 
 	log "github.com/sirupsen/logrus"
 )

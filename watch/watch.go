@@ -14,7 +14,7 @@ import (
 
 	"reflect"
 
-	"github.com/dreadl0ck/petze/config"
+	"github.com/foomo/petze/config"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -106,8 +106,11 @@ type dialerErrRecorder struct {
 }
 
 type Watcher struct {
-	active  bool
-	service *config.Service
+	active                      bool
+	service                     *config.Service
+	didReceiveMailNotification  bool
+	didReceiveSlackNotification bool
+	lastErrors                  []Error
 }
 
 // Watch create a watcher and start watching
@@ -130,10 +133,10 @@ func (w *Watcher) watchLoop(chanResult chan Result) {
 	httpClient, errRecorder := w.getClientAndDialErrRecorder()
 
 	for w.active {
-		r := watch(w.service, httpClient, errRecorder)
+		r := w.watch(httpClient, errRecorder)
 		if w.active {
-			mailNotify(r, w.service)
-			slackNotify(r)
+			w.mailNotify(r)
+			w.slackNotify(r)
 			chanResult <- *r
 			time.Sleep(w.service.Interval)
 		}
@@ -222,10 +225,12 @@ func (w *Watcher) getClientAndDialErrRecorder() (client *http.Client, errRecorde
 }
 
 // actual watch
-func watch(service *config.Service, client *http.Client, errRecorder *dialerErrRecorder) (r *Result) {
-	r = NewResult(service.ID)
+func (w *Watcher) watch(client *http.Client, errRecorder *dialerErrRecorder) (r *Result) {
+
+	r = NewResult(w.service.ID)
+
 	// parsing, the endpoint
-	request, err := http.NewRequest("GET", service.Endpoint, nil)
+	request, err := http.NewRequest("GET", w.service.Endpoint, nil)
 	if err != nil {
 		r.addError(err, ErrorInvalidEndpoint, "")
 		return r
@@ -291,7 +296,7 @@ func watch(service *config.Service, client *http.Client, errRecorder *dialerErrR
 	// prepare to run the session with cookies
 	cookieJar, _ := cookiejar.New(nil)
 	client.Jar = cookieJar
-	errSession := runSession(service, r, client)
+	errSession := w.runSession(r, client)
 	if errSession != nil {
 		log.Error("session error", errSession)
 		r.addError(errSession, ErrorTypeSessionFail, "")

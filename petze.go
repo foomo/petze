@@ -2,13 +2,13 @@ package main
 
 import (
 	"flag"
-	"github.com/dreadl0ck/petze/mail"
+	"github.com/foomo/petze/mail"
 	"os"
 
-	"github.com/dreadl0ck/petze/config"
-	"github.com/dreadl0ck/petze/service"
+	"github.com/foomo/petze/config"
+	"github.com/foomo/petze/service"
+	"github.com/foomo/petze/slack"
 	log "github.com/sirupsen/logrus"
-	"github.com/dreadl0ck/petze/slack"
 )
 
 var flagJsonOutput bool

@@ -2,7 +2,7 @@ package watch
 
 import (
 	"bytes"
-	"github.com/dreadl0ck/petze/config"
+	"github.com/foomo/petze/config"
 	"net/http"
 	"net/http/httptest"
 	"testing"

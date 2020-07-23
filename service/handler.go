@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/dreadl0ck/petze/watch"
+	"github.com/foomo/petze/watch"
 	"github.com/julienschmidt/httprouter"
 )
 

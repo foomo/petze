@@ -6,11 +6,11 @@ import (
 	"net/http"
 
 	auth "github.com/abbot/go-http-auth"
-	"github.com/dreadl0ck/petze/collector"
-	"github.com/dreadl0ck/petze/config"
+	"github.com/foomo/petze/collector"
+	"github.com/foomo/petze/config"
 	"github.com/julienschmidt/httprouter"
 
-	"github.com/dreadl0ck/petze/exporter"
+	"github.com/foomo/petze/exporter"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	log "github.com/sirupsen/logrus"

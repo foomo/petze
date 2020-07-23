@@ -1,4 +1,4 @@
-module github.com/dreadl0ck/petze
+module github.com/foomo/petze
 
 go 1.14
 

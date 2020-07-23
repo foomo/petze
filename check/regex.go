@@ -1,7 +1,7 @@
 package check
 
 import (
-	"github.com/dreadl0ck/petze/config"
+	"github.com/foomo/petze/config"
 	"regexp"
 	"strings"
 )

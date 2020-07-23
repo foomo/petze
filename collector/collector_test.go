@@ -1,7 +1,7 @@
 package collector
 
 import (
-	"github.com/dreadl0ck/petze/watch"
+	"github.com/foomo/petze/watch"
 	"testing"
 )
 

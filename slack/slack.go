@@ -16,6 +16,10 @@ var (
 	webhook string
 )
 
+func IsInitialized() bool {
+	return webhook != ""
+}
+
 type Message struct {
 	Text string `json:"text"`
 }

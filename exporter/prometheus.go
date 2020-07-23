@@ -1,7 +1,7 @@
 package exporter
 
 import (
-	"github.com/dreadl0ck/petze/watch"
+	"github.com/foomo/petze/watch"
 	"github.com/prometheus/client_golang/prometheus"
 	"time"
 )

@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/dreadl0ck/petze/check"
-	"github.com/dreadl0ck/petze/config"
+	"github.com/foomo/petze/check"
+	"github.com/foomo/petze/config"
 )
 
 type ValidatorFunc func(ctx *CheckContext) (errs []Error)
@@ -172,8 +172,8 @@ func ValidateMatchReply(ctx *CheckContext) (errs []Error) {
 			return
 		}
 		var (
-			expected = ctx.check.MatchReply
-			reply = string(data)
+			expected         = ctx.check.MatchReply
+			reply            = string(data)
 			maxDisplayLength = 20
 		)
 		if len(expected) > maxDisplayLength {
