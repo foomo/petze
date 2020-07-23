@@ -28,7 +28,7 @@ type Mailer struct {
 	password string
 	from     string
 	dialer   *gomail.Dialer
-	to       string // default recipient
+	to       []string // default recipients
 }
 
 func init() {
@@ -54,7 +54,7 @@ func ConfigureLogger(level logrus.Level, prod bool) {
 }
 
 // InitMailer returns a new mailer instance
-func InitMailer(smtpServer, smtpUser, smtpPassword, from string, smtpPort int, to string) {
+func InitMailer(smtpServer, smtpUser, smtpPassword, from string, smtpPort int, to []string) {
 	m = &Mailer{
 		server:   smtpServer,
 		port:     smtpPort,
@@ -66,12 +66,14 @@ func InitMailer(smtpServer, smtpUser, smtpPassword, from string, smtpPort int, t
 	m.dialer = gomail.NewDialer(m.server, m.port, m.user, m.password)
 }
 
+func SendMail(subject string, mail hermes.Email) {
+	for _, recipient := range m.to {
+		Send(recipient, subject, mail)
+	}
+}
+
 // Send handles dispatching an email to the specified receiver
 func Send(to string, subject string, mail hermes.Email) {
-
-	if to == "" {
-		to = m.to
-	}
 
 	cLog := Log.WithFields(logrus.Fields{
 		"prefix":  "mailer",
