@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"github.com/foomo/petze/mail"
+	"github.com/foomo/petze/sms"
 	"os"
 
 	"github.com/foomo/petze/config"
@@ -50,6 +51,10 @@ func runServer(configurationDirectory string) {
 	// init slackbot
 	if serverConfig.Slack != "" {
 		slack.InitSlackBot(serverConfig.Slack)
+	}
+	// init SMS
+	if serverConfig.Sms != nil {
+		sms.InitSMS(serverConfig.Sms)
 	}
 	log.Info(service.Run(serverConfig, configurationDirectory))
 }

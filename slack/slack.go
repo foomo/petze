@@ -56,6 +56,10 @@ func Send(message []byte) {
 	client := &http.Client{}
 	requestBody := bytes.NewReader(message)
 	request, err := http.NewRequest("POST", webhook, requestBody)
+	if err != nil {
+		Log.Error(err)
+	}
+
 	request.Header.Add("Content-type", "application/json")
 
 	// execute the HTTP request
@@ -73,11 +77,11 @@ func Send(message []byte) {
 	Log.Info("slack bot response body: ", string(responseBody))
 }
 
-func GenerateErrorMessage(errs []error) []byte {
+func GenerateErrorMessage(errs []error, service string) []byte {
 
 	var errMessage = []string{
 		time.Now().Format(timestampFormat),
-		"an error occured:\n",
+		"an error occured for service " + strings.ToUpper(service) + "\n",
 	}
 
 	if len(errs) > 0 {
@@ -87,7 +91,22 @@ func GenerateErrorMessage(errs []error) []byte {
 	}
 
 	unmarshalledMessage := &Message{Text: strings.Join(errMessage, " ")}
+	marshalledMessage, err := json.Marshal(unmarshalledMessage)
+	if err != nil {
+		Log.Error(err)
+	}
 
+	return marshalledMessage
+}
+
+func GenerateResolvedNotification(service string) []byte {
+
+	var errMessage = []string{
+		time.Now().Format(timestampFormat),
+		"service " + strings.ToUpper(service) + " is back to normal operation!",
+	}
+
+	unmarshalledMessage := &Message{Text: strings.Join(errMessage, " ")}
 	marshalledMessage, err := json.Marshal(unmarshalledMessage)
 	if err != nil {
 		Log.Error(err)

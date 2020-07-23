@@ -1,6 +1,7 @@
 package mail
 
 import (
+	"strings"
 	"time"
 
 	"github.com/matcornic/hermes/v2"
@@ -66,7 +67,7 @@ func InitMailer(smtpServer, smtpUser, smtpPassword, from string, smtpPort int, t
 	m.dialer = gomail.NewDialer(m.server, m.port, m.user, m.password)
 }
 
-func SendMail(subject string, mail hermes.Email) {
+func SendMails(subject string, mail hermes.Email) {
 	for _, recipient := range m.to {
 		Send(recipient, subject, mail)
 	}
@@ -115,7 +116,7 @@ func Send(to string, subject string, mail hermes.Email) {
 		// prevent loop
 		if to != m.from {
 			// notify grand master
-			Send(m.from, "[Mail Error] "+subject+" to "+to, GenerateErrorMail([]error{err}, "failed to send mail"))
+			Send(m.from, "[Mail Error] "+subject+" to "+to, GenerateErrorMail([]error{err}, "failed to send mail", "internal"))
 		}
 	}
 }
@@ -155,10 +156,10 @@ func renderMail(mail hermes.Email) (html, plainText string, err error) {
 	return
 }
 
-func GenerateErrorMail(errs []error, msg string) hermes.Email {
+func GenerateErrorMail(errs []error, msg string, service string) hermes.Email {
 
 	var intros = []string{
-		"An error with one of the monitored services occurred:",
+		"An error with the service " + strings.ToUpper(service) + " occurred:",
 		"Timestamp: " + time.Now().Format(timestampFormat),
 	}
 	if msg != "" {
@@ -181,17 +182,16 @@ func GenerateErrorMail(errs []error, msg string) hermes.Email {
 	}
 }
 
-func GenerateServiceMail(msg ...string) hermes.Email {
+func GenerateResolvedNotificationMail(service string) hermes.Email {
 	return hermes.Email{
 		Body: hermes.Body{
 			Greeting:  "Dear",
 			Name:      "Admin",
 			Signature: "kind regards",
 			Intros: []string{
-				"Service Event Info:",
+				"service " + strings.ToUpper(service) + " is back to normal operation",
 				"Timestamp: " + time.Now().Format(timestampFormat),
 			},
-			Outros: msg,
 		},
 	}
 }

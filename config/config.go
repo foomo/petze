@@ -13,65 +13,97 @@ const (
 )
 
 type Expect struct {
-	Max      *int64
-	Min      *int64
-	Count    *int64
-	Contains string
-	Equals   interface{}
+	Max      *int64      `yaml:"max"`
+	Min      *int64      `yaml:"min"`
+	Count    *int64      `yaml:"count"`
+	Contains string      `yaml:"contains"`
+	Equals   interface{} `yaml:"equals"`
 }
 
 type Check struct {
-	Comment     string
-	JSONPath    map[string]Expect `yaml:"json-path"`
-	Goquery     map[string]Expect
-	Headers     map[string]string
-	Regex       map[string]Expect
-	Duration    time.Duration
-	StatusCode  int64  `yaml:"statuscode"` // TODO: unify naming
-	ContentType string `yaml:"content-type"`
-	Redirect    string
-	MatchReply  string `yaml:"match-reply"`
+	Comment     string            `yaml:"comment"`
+	JSONPath    map[string]Expect `yaml:"jsonPath"`
+	GoQuery     map[string]Expect `yaml:"goQuery"`
+	Headers     map[string]string `yaml:"headers"`
+	Regex       map[string]Expect `yaml:"regex"`
+	Duration    time.Duration     `yaml:"duration"`
+	StatusCode  int64             `yaml:"statusCode"`
+	ContentType string            `yaml:"contentType"`
+	Redirect    string            `yaml:"redirect"`
+	MatchReply  string            `yaml:"matchReply"`
 }
 
 type Call struct {
-	Scheme      string // allow to overwrite scheme
-	URI         string
-	URL         string
-	Method      string
-	Data        interface{}
-	ContentType string `yaml:"content-type"`
-	Check       []Check
-	Headers     map[string]string
-	Comment     string
+	// allow to overwrite scheme
+	Scheme      string            `yaml:"scheme"`
+	URI         string            `yaml:"uri"`
+	URL         string            `yaml:"url"`
+	Method      string            `yaml:"method"`
+	Data        interface{}       `yaml:"data"`
+	ContentType string            `yaml:"contentType"`
+	Check       []Check           `yaml:"check"`
+	Headers     map[string]string `yaml:"headers"`
+	Comment     string            `yaml:"comment"`
 }
 
-// Service a service to monitor
+// Service is a service to monitor
+// The service id is the name of the file including its relative path in the config folder
+// e.g:
+// google.yml -> service ID: google
+// cluster1/service1.yml -> service ID: cluster1/service1
 type Service struct {
-	ID       string
-	Endpoint string
-	Interval time.Duration
+
+	// service identifier
+	ID       string        `yaml:"id"`
+	Endpoint string        `yaml:"endpoint"`
+	Interval time.Duration `yaml:"interval"`
+
+	Session    []Call        `yaml:"session"`
+
+	// Notifications
+	NotifyIfResolved bool `yaml:"notifyIfResolved"`
+
 	// Generate an error if the TLS certificate will expire in less then
-	TLSWarning time.Duration `yaml:"tlswarning"`
-	Session    []Call
+	TLSWarning time.Duration `yaml:"tlsWarning"`
 }
 
+// Server models the petze.yml main config file
 type Server struct {
-	Address       string
-	BasicAuthFile string
-	TLS           *struct {
-		Address string
-		Cert    string
-		Key     string
+
+	// endpoint to expose metrics
+	Address       string `yaml:"address"`
+
+	// auth
+	BasicAuthFile string `yaml:"basicAuthFile"`
+
+	// Notifications
+	TLS *struct {
+		Address string `yaml:"address"`
+		Cert    string `yaml:"cert"`
+		Key     string `yaml:"key"`
 	}
+
 	SMTP *struct {
-		User   string
-		Pass   string
-		Server string
-		Port   int
-		From   string
-		To     []string
-	}
-	Slack string
+		User   string   `yaml:"user"`
+		Pass   string   `yaml:"pass"`
+		Server string   `yaml:"server"`
+		Port   int      `yaml:"port"`
+		From   string   `yaml:"from"`
+		To     []string `yaml:"to"`
+	} `yaml:"smtp"`
+
+	Slack string `yaml:"slack"`
+	Sms   *SMS   `yaml:"sms"`
+}
+
+type SMS struct {
+	SendInBlueAPIKey string `yaml:"sendInBlueAPIKey"`
+
+	TwilioSID   string `yaml:"twilioSID"`
+	TwilioToken string `yaml:"twilioToken"`
+
+	To   []string `yaml:"to"`
+	From string   `yaml:"from"`
 }
 
 func (s *Service) GetURL() (u *url.URL, e error) {

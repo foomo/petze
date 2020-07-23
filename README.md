@@ -37,11 +37,16 @@ It provides information for the petze service, as well the configuration for you
 # HTTP endpoint for prometheus metrics
 address: server-name.net:8080
 
+# optional basic auth
+basicauthfile: path/to/basic-auth-file
+
 # optional: running with TLS
 tls:
   address: server-name:8443
   cert: path/to/cert.pem
   key: path/to/key.pem
+
+## Notifications
 
 # optional: notification via slack webhooks
 slack: https://hooks.slack.com/services/custom-parameters
@@ -55,8 +60,14 @@ smtp:
   from: replyto@mail.com
   to: usertonotify@mail.com 
 
-# optional basic auth
-basicauthfile: path/to/basic-auth-file
+# optional: SMS notifications 
+sms:
+  twilioSID: "yourTwilioSID"
+  twilioToken: "yourTwilioToken"
+  from: "+49123456789"
+  to:
+    - "+491234567891" # person 1
+    - "+491234567892" # person 2
 ```
 
 ## Service configuration files
@@ -66,43 +77,57 @@ It is strongly encouraged to organize them in folder structures.
 These will be reflected in the service ids.
 
 ```yaml
+# the service base URL
 endpoint: http://www.bestbytes.de
+
+# interval of the health checks
 interval: 5m
-tlswarning: 128h # overwrite the default warning of one week before expiry for this service
-# run requests in a session, with cookies
+
+# overwrite the default warning of one week before expiry for this service
+tlsWarning: 128h
+
+# want to get a heads up once things are back to normal?
+# default is false! 
+# if you set this to true all configured notification providers 
+# will be used to send a status update once the service checks pass again
+notifyIfResolved: true
+
+# service health check sessions
+# each session will preserve all cookies that have been set during checks
 session:
   - uri: "/"
     comment: home page visit
     check:
-      - statuscode: 200
+      - statusCode: 200
       - duration: 200ms
-      - goquery:
+      - goQuery:
       	  ".body div.test":
       	  min: 3
   
   - method: POST
     comment: this is how you perform XHR requests  
     uri: "/path/to/a/rest/service?foo=bar"
-    content-type: application/json
+    contentType: application/json
     headers:
       "X-Test": ["foo"]
     data:
       foo: bar
     check:
-      - content-type: application/json
+      - contentType: application/json
       - duration: 100ms
       - headers:
           "X-Test": "foo"
-      - json-path:
+      - jsonPath:
         # this is a json path expression
         "$[0].product.images+":
         	min: 1
   - uri: "/another/path"
     check:
       - duration: 100ms
-      - redirect: "https://myservice.com/asdf" # match the location for checking redirects
-      - match-reply: "asdf" # match the raw response string
-
+      # match the location for checking redirects
+      - redirect: "https://myservice.com/asdf"
+      # match the raw response string
+      - matchReply: "asdf"
 ```
 
 ## SMTP Integration
@@ -140,6 +165,35 @@ Then add your newly generated webhook URL to your petze.yml:
 
 ```yaml
 slack: https://hooks.slack.com/services/custom-parameters
+```
+
+## SMS Integration
+
+SMS notifications are also supported, currently we have an integration for [twilio](https://twilio.com) and [sendinblue](https://sendinblue.com).
+
+## Twilio
+
+_petze.yml_:
+```yaml
+sms:
+  twilioSID: "yourTwilioSID"
+  twilioToken: "yourTwilioToken"
+  from: "+49123456789"
+  to:
+    - "+491234567891" # person 1
+    - "+491234567892" # person 2
+```
+
+## SendInBlue
+
+_petze.yml_:
+```yaml
+sms:
+  sendInBlueAPIKey: "yourSendInBlueAPIKey"
+  from: "+49123456789"
+    to:
+      - "+491234567891" # person 1
+      - "+491234567892" # person 2    
 ```
 
 ## Docker Usage

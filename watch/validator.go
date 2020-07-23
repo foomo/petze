@@ -107,7 +107,7 @@ func ValidateDuration(ctx *CheckContext) (errs []Error) {
 }
 
 func ValidateGoQuery(ctx *CheckContext) (errs []Error) {
-	if ctx.check.Goquery != nil {
+	if ctx.check.GoQuery != nil {
 
 		// go query
 		doc, errDoc := goquery.NewDocumentFromReader(ctx.responseBodyReader)
@@ -118,7 +118,7 @@ func ValidateGoQuery(ctx *CheckContext) (errs []Error) {
 				Comment: ctx.call.Comment,
 			})
 		} else {
-			for selector, expect := range ctx.check.Goquery {
+			for selector, expect := range ctx.check.GoQuery {
 				ok, info := check.Goquery(doc, selector, expect)
 				if !ok {
 					errs = append(errs, Error{

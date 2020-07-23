@@ -108,8 +108,11 @@ type dialerErrRecorder struct {
 type Watcher struct {
 	active                      bool
 	service                     *config.Service
+
+	// notifications
 	didReceiveMailNotification  bool
 	didReceiveSlackNotification bool
+	didReceiveSMSNotification   bool
 	lastErrors                  []Error
 }
 
@@ -135,8 +138,12 @@ func (w *Watcher) watchLoop(chanResult chan Result) {
 	for w.active {
 		r := w.watch(httpClient, errRecorder)
 		if w.active {
+
+			// send notifications
+			w.smsNotify(r)
 			w.mailNotify(r)
 			w.slackNotify(r)
+
 			chanResult <- *r
 			time.Sleep(w.service.Interval)
 		}

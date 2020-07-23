@@ -4,5 +4,5 @@ session:
   - uri: "/"
     comment: home page visit
     check:
-      - statuscode: 301
+      - statusCode: 301
       - duration: 250ms
