@@ -8,6 +8,7 @@ import (
 	"github.com/dreadl0ck/petze/config"
 	"github.com/dreadl0ck/petze/service"
 	log "github.com/sirupsen/logrus"
+	"github.com/dreadl0ck/petze/slack"
 )
 
 var flagJsonOutput bool
@@ -45,6 +46,10 @@ func runServer(configurationDirectory string) {
 			serverConfig.SMTP.Port,
 			serverConfig.SMTP.To,
 		)
+	}
+	// init slackbot
+	if serverConfig.Slack != "" {
+		slack.InitSlackBot(serverConfig.Slack)
 	}
 	log.Info(service.Run(serverConfig, configurationDirectory))
 }

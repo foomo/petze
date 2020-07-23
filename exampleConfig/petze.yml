@@ -11,3 +11,5 @@ smtp:
   to:
     - user1tonotify@mail.com
     - user2tonotify@mail.com
+
+slack: https://hooks.slack.com/services/custom-parameters

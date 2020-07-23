@@ -71,6 +71,7 @@ type Server struct {
 		From   string
 		To     []string
 	}
+	Slack string
 }
 
 func (s *Service) GetURL() (u *url.URL, e error) {
