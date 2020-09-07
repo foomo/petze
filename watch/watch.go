@@ -178,7 +178,45 @@ func (w *Watcher) getClientAndDialErrRecorder() (client *http.Client, errRecorde
 			for _, cert := range connectionState.PeerCertificates {
 				durationUntilExpiry := cert.NotAfter.Sub(time.Now())
 				if durationUntilExpiry < w.service.TLSWarning {
-					errRecorder.errors = addError(errRecorder.errors, errors.New(fmt.Sprint("cert CN=\"", cert.Subject.CommonName, "\" is expiring in less than "+strconv.FormatFloat(w.service.TLSWarning.Hours(), 'f', 0, 64)+"h: ", cert.NotAfter, ", left: ", strconv.FormatFloat(durationUntilExpiry.Hours(), 'f', 0, 64))), ErrorTypeCertificateIsExpiring, "")
+					var (
+						prefix = "cert CN=\"" + cert.Subject.CommonName
+						certErr = Error{
+							Error:   errors.New(
+								fmt.Sprint(
+									"cert CN=\"",
+									cert.Subject.CommonName,
+									"\" is expiring in less than "+strconv.FormatFloat(w.service.TLSWarning.Hours(), 'f', 0, 64)+"h: ",
+									cert.NotAfter,
+									", left: ",
+									strconv.FormatFloat(durationUntilExpiry.Hours(), 'f', 0, 64),
+									" hours",
+								),
+							).Error(),
+							Type:    ErrorTypeCertificateIsExpiring,
+							Comment: "",
+						}
+						updatedCertError bool
+					)
+
+					// iterate over previously recorded errors
+					// and update the error for the currently affected service if a certificate expiry warning is already present
+					for i, e := range errRecorder.errors {
+						if e.Type == ErrorTypeCertificateIsExpiring {
+							if strings.HasPrefix(e.Error, prefix) {
+								updatedCertError = true
+								errRecorder.errors[i] = certErr
+								break
+							}
+						}
+					}
+
+					// if the error has not been updated it needs to be added initially
+					if !updatedCertError {
+						errRecorder.errors = append(
+							errRecorder.errors,
+							certErr,
+						)
+					}
 				}
 			}
 			conn = tlsConn
