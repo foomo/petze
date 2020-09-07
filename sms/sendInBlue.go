@@ -3,6 +3,7 @@ package sms
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/davecgh/go-spew/spew"
 	"io"
@@ -11,6 +12,16 @@ import (
 	"net/http"
 	"strings"
 	"time"
+)
+
+const (
+	endpoint = "https://api.sendinblue.com/v3/transactionalSMS/sms"
+)
+
+var (
+	ErrInvalidResponseData = errors.New("invalid SIBResponseData")
+	ErrInvalidMessageID = errors.New("message-id field is not a string")
+	ErrInvalidData = errors.New("unable to convert data to map[string]interface{}")
 )
 
 // V3 API
@@ -66,6 +77,7 @@ func GenerateSIBResolvedSMS(service string) []*SendInBlueSMS {
 			"service " + strings.ToUpper(service) + " is back to normal operation",
 			"Timestamp: " + time.Now().Format(timestampFormat),
 		}
+
 		smsArr = append(smsArr, &SendInBlueSMS{
 			From:    conf.From,
 			To:      recipient,
@@ -84,13 +96,17 @@ func SendSIB(smsArr []*SendInBlueSMS) {
 		resp, err := sendSIBSMS(sms)
 		if err != nil {
 			log.Println(err)
+
 			return
 		}
+
 		rd, err := resp.GetSIBResponseData()
 		if err != nil {
 			log.Println(err)
+
 			return
 		}
+
 		spew.Dump(rd)
 	}
 }
@@ -101,17 +117,22 @@ func sendSIBSMS(sms *SendInBlueSMS) (*SendInBlueResponse, error) {
 	defer body.Reset()
 
 	encoder := json.NewEncoder(body)
+
 	err := encoder.Encode(sms)
 	if err != nil {
 		return nil, err
 	}
 
-	res, err := sendSIBRequest("https://api.sendinblue.com/v3/transactionalSMS/sms", nil, ioutil.NopCloser(body), body.Len())
+	res, err := sendSIBRequest(endpoint, nil, ioutil.NopCloser(body), body.Len())
 	if err != nil {
-		c, _ := ioutil.ReadAll(res.Body)
-		fmt.Println(string(c))
+		if res != nil {
+			c, _ := ioutil.ReadAll(res.Body)
+			fmt.Println(string(c))
+		}
+
 		return nil, err
 	}
+
 	defer func() {
 		// Drain and close the body to let the Transport reuse the connection
 		io.Copy(ioutil.Discard, res.Body)
@@ -128,6 +149,7 @@ func sendSIBSMS(sms *SendInBlueSMS) (*SendInBlueResponse, error) {
 	}
 
 	resp := &SendInBlueResponse{}
+
 	err = json.Unmarshal(rawResBody, resp)
 	if err != nil {
 		return nil, err
@@ -148,14 +170,16 @@ func sendSIBRequest(url string, headers map[string]string, body io.ReadCloser, l
 	for key, val := range headers {
 		req.Header.Add(key, val)
 	}
+
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("api-key", conf.SendInBlueAPIKey)
 
 	client := &http.Client{}
+
 	return client.Do(req)
 }
 
-// SendInblue JSON response from the server
+// SendInblue JSON response from the server.
 type SendInBlueResponse struct {
 	Code    string      `json:"code"`
 	Message string      `json:"message"`
@@ -177,27 +201,27 @@ type SIBResponseData struct {
 	RemainingCredit float64           `json:"remaining_credit"`
 }
 
-// Retrieve the sendinblue message-id
+// GetMessageId retrieves the sendinblue message-id.
 func (s *SendInBlueResponse) GetMessageId() (string, error) {
 
 	dataInterface, ok := s.Data.(map[string]interface{})
 	if !ok {
-		return "", fmt.Errorf("invalid data type: %s", "unable to convert to map[string]interface{}")
+		return "", fmt.Errorf("invalid data type: %w", ErrInvalidData)
 	}
 
 	emailID, ok := dataInterface["message-id"].(string)
 	if !ok {
-		return "", fmt.Errorf("invalid data type: %s", "message-id is not a string")
+		return "", fmt.Errorf("invalid data type: %w", ErrInvalidMessageID)
 	}
 
 	return emailID, nil
 }
 
+// GetSIBResponseData retrieves the sendinblue API response.
 func (s *SendInBlueResponse) GetSIBResponseData() (*SIBResponseData, error) {
-
 	smsResponse, ok := s.Data.(*SIBResponseData)
 	if !ok {
-		return nil, fmt.Errorf("invalid data type: %s", "invalid SIBResponseData")
+		return nil, fmt.Errorf("invalid data type: %w", ErrInvalidResponseData)
 	}
 
 	return smsResponse, nil
