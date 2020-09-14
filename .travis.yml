@@ -1,6 +1,11 @@
 language: go
 go:
-  - 1.14.4
+  - 1.15.1
+
+# set the version for petze during build
+# bump the version ident here
+env:
+  - VERSION=v1.0.1
 
 sudo: required
 
@@ -12,5 +17,5 @@ script:
 
 after_success:
   - if [ "$TRAVIS_BRANCH" == "master" ]; then
-      make docker-build && make docker-push ;
+      TAG=${VERSION} make docker-build && make docker-push ;
     fi;

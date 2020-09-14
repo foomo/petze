@@ -18,7 +18,11 @@ import (
 	"github.com/foomo/petze/config"
 )
 
-const defaultUserAgent = "Petze Service Monitor/1.0"
+var userAgent = "Petze Service Monitor"
+
+func SetUserAgentVersion(version string) {
+	userAgent += "/"+version
+}
 
 func (w *Watcher) runSession(r *Result, client *http.Client) error {
 
@@ -71,7 +75,7 @@ func (w *Watcher) runSession(r *Result, client *http.Client) error {
 		start := time.Now()
 
 		// set default user agent first, so it can be overwritten via the custom header fields if desired
-		req.Header.Set("User-Agent", defaultUserAgent)
+		req.Header.Set("User-Agent", userAgent)
 
 		// set the HTTP header fields specified for the call
 		for k, v := range call.Headers {

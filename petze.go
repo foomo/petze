@@ -2,8 +2,10 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"github.com/foomo/petze/mail"
 	"github.com/foomo/petze/sms"
+	"github.com/foomo/petze/watch"
 	"os"
 
 	"github.com/foomo/petze/config"
@@ -13,6 +15,9 @@ import (
 )
 
 var flagJsonOutput bool
+
+// Version is set during build via ldflags
+var Version string
 
 func main() {
 	flag.Usage = usage
@@ -24,6 +29,11 @@ func main() {
 	if len(flag.Args()) == 0 {
 		log.Fatal("please pass the configuration directory as a first argument")
 	}
+
+	// add version to user agent
+	watch.SetUserAgentVersion(Version)
+	fmt.Println("petze", Version, "starting")
+
 	configurationDirectory := flag.Args()[0]
 	if stat, err := os.Stat(configurationDirectory); err == nil && stat.IsDir() {
 		runServer(configurationDirectory)
