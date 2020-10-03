@@ -1,8 +1,8 @@
 package sms
 
 import (
-	"fmt"
 	"github.com/kevinburke/twilio-go"
+	"log"
 	"strings"
 	"time"
 )
@@ -64,7 +64,7 @@ func SendTwilioSMS(sms []*TwilioSMS) {
 		// Send a message
 		_, err := client.Messages.SendMessage(conf.From, s.To, s.Body, nil)
 		if err != nil {
-			fmt.Println(err)
+			log.Println("sending twilio sms failed:", err)
 		}
 		//fmt.Println(msg.Status)
 	}
