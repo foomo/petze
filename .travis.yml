@@ -5,7 +5,7 @@ go:
 # set the version for petze during build
 # bump the version ident here
 env:
-  - VERSION=v1.0.1
+  - VERSION=v1.0.2
 
 sudo: required
 
