@@ -12,6 +12,7 @@ require (
 	github.com/abbot/go-http-auth v0.4.0
 	github.com/andybalholm/cascadia v1.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.1
+	github.com/go-ping/ping v0.0.0-20201022122018-3977ed72668a // indirect
 	github.com/google/uuid v1.1.1 // indirect
 	github.com/huandu/xstrings v1.3.2 // indirect
 	github.com/imdario/mergo v0.3.9 // indirect

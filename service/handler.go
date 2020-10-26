@@ -18,7 +18,7 @@ func (s *server) GETServices(w http.ResponseWriter, r *http.Request, ps httprout
 	jsonReply("GETCollectorConfigServices", w)
 }
 
-func (s *server) GETStatus(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (s *server) GETServicesStatus(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	limitInt := 1000
 	limitIntCandidate, err := strconv.Atoi(r.FormValue("limit"))
 	if err == nil {

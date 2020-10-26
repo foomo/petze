@@ -67,6 +67,21 @@ type Service struct {
 	TLSWarning time.Duration `yaml:"tlsWarning"`
 }
 
+// Host is a host to monitor
+type Host struct {
+
+	// host identifier
+	ID         string `yaml:"id"`
+	DomainName string `yaml:"domainname"`
+	Interval time.Duration `yaml:"interval"`
+
+	// Notifications
+	NotifyIfResolved bool `yaml:"notifyIfResolved"`
+
+	// List of services running on host
+	services []Service `yaml:"services"`
+}
+
 // Server models the petze.yml main config file
 type Server struct {
 

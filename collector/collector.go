@@ -12,21 +12,26 @@ import (
 
 type ResultListener func(watch.Result)
 
-// Collector collects stats on services
+// Collector collects stats on hosts & services
 type Collector struct {
 	servicesConfigDir string
+	hostsConfigDir    string
 	chanServices      chan map[string]*config.Service
+	chanHosts         chan map[string]*config.Host
 	chanGetResults    chan map[string][]watch.Result
 	watchers          map[string]*watch.Watcher
 	resultListeners   []ResultListener
 	services          map[string]*config.Service
+	hosts             map[string]*config.Host
 }
 
 // NewCollector construct a collector - it will watch its config files for changes
-func NewCollector(servicesConfigDir string) (c *Collector, err error) {
+func NewCollector(servicesConfigDir string, hostsConfigDir string) (c *Collector, err error) {
 	c = &Collector{
 		servicesConfigDir: servicesConfigDir,
+		hostsConfigDir: hostsConfigDir,
 		services:          make(map[string]*config.Service),
+		hosts:             make(map[string]*config.Host),
 		chanServices:      make(chan map[string]*config.Service),
 		chanGetResults:    make(chan map[string][]watch.Result),
 		watchers:          make(map[string]*watch.Watcher),
@@ -91,17 +96,54 @@ func (c *Collector) collect() {
 				lastErrs, ok := lastErrors[serviceID]
 				if ok {
 					// transfer errors to new watcher
-					newWatcher := watch.Watch(service, chanResult)
+					newWatcher := watch.WatchService(service, chanResult)
 					newWatcher.SetLastErrors(lastErrs)
 					c.watchers[serviceID] = newWatcher
 				} else {
 					// no errors - init a new watcher
-					c.watchers[serviceID] = watch.Watch(service, chanResult)
+					c.watchers[serviceID] = watch.WatchService(service, chanResult)
 				}
 				// reset stored results
 				_, ok = results[serviceID]
 				if !ok {
 					results[serviceID] = []watch.Result{}
+				}
+			}
+		case newHosts := <-c.chanHosts:
+			c.hosts = newHosts
+
+			var lastErrors = make(map[string][]watch.Error)
+
+			// stop old watchers
+			for oldWatcherID, oldWatcher := range c.watchers {
+				oldWatcher.Stop()
+
+				// if the service had errors before updating the config
+				// store them in a map so we can transfer them to the updated watchers
+				if len(oldWatcher.LastErrors()) > 0 {
+					lastErrors[oldWatcherID] = oldWatcher.LastErrors()
+				}
+
+				delete(c.watchers, oldWatcherID)
+			}
+
+			// setup new watchers
+			for hostID, host := range c.hosts {
+				// check if the service had errors before being updated
+				lastErrs, ok := lastErrors[hostID]
+				if ok {
+					// transfer errors to new watcher
+					newWatcher := watch.WatchHost(host, chanResult)
+					newWatcher.SetLastErrors(lastErrs)
+					c.watchers[hostID] = newWatcher
+				} else {
+					// no errors - init a new watcher
+					c.watchers[hostID] = watch.WatchHost(host, chanResult)
+				}
+				// reset stored results
+				_, ok = results[hostID]
+				if !ok {
+					results[hostID] = []watch.Result{}
 				}
 			}
 			// clean up results

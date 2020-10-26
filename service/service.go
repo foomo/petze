@@ -8,6 +8,7 @@ import (
 	auth "github.com/abbot/go-http-auth"
 	"github.com/foomo/petze/collector"
 	"github.com/foomo/petze/config"
+	"github.com/foomo/petze/hosts"
 	"github.com/julienschmidt/httprouter"
 
 	"github.com/foomo/petze/exporter"
@@ -31,8 +32,8 @@ type server struct {
 	collector *collector.Collector
 }
 
-func newServer(servicesConfigfile string) (s *server, err error) {
-	coll, err := collector.NewCollector(servicesConfigfile)
+func newServer(servicesConfigFile string, hostsConfigFile) (s *server, err error) {
+	coll, err := collector.NewCollector(servicesConfigFile, hostsConfigFile)
 	defer coll.Start()
 	s = &server{
 		router:    httprouter.New(),
@@ -40,7 +41,9 @@ func newServer(servicesConfigfile string) (s *server, err error) {
 	}
 
 	s.router.GET("/services", s.GETServices)
-	s.router.GET("/status", s.GETStatus)
+	s.router.GET("/services/status", s.GETServicesStatus)
+	s.router.GET("/hosts", s.GETHosts)
+	s.router.GET("/hosts/status", s.GETHostsStatus)
 	s.router.Handler("GET", "/metrics", promhttp.Handler())
 
 	return s, nil

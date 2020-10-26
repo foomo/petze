@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"go-ping/ping"
 
 	"reflect"
 
@@ -108,6 +109,7 @@ type dialerErrRecorder struct {
 type Watcher struct {
 	active                      bool
 	service                     *config.Service
+	host                        *config.Host
 
 	// notifications
 	didReceiveMailNotification  bool
@@ -116,14 +118,25 @@ type Watcher struct {
 	lastErrors                  []Error
 }
 
-// Watch create a watcher and start watching
-func Watch(service *config.Service, chanResult chan Result) *Watcher {
+// Watch create a service watcher and start watching
+func WatchService(service *config.Service, chanResult chan Result) *Watcher {
 
 	w := &Watcher{
 		active:  true,
 		service: service,
 	}
-	go w.watchLoop(chanResult)
+	go w.serviceWatchLoop(chanResult)
+	return w
+}
+
+// Create a host watcher and start watching
+func WatchHost(host *config.Host, chanResult chan Result) *Watcher {
+
+	w := &Watcher{
+		active:  true,
+		host: host,
+	}
+	go w.hostWatchLoop(chanResult)
 	return w
 }
 
@@ -143,7 +156,7 @@ func (w *Watcher) SetLastErrors(errs []Error) {
 	w.lastErrors = errs
 }
 
-func (w *Watcher) watchLoop(chanResult chan Result) {
+func (w *Watcher) serviceWatchLoop(chanResult chan Result) {
 	httpClient, errRecorder := w.getClientAndDialErrRecorder()
 
 	for w.active {
@@ -158,6 +171,15 @@ func (w *Watcher) watchLoop(chanResult chan Result) {
 			chanResult <- *r
 			time.Sleep(w.service.Interval)
 		}
+	}
+}
+
+func (w *Watcher) hostWatchLoop(chanResult chan Result) {
+	pinger, errRecorder := ping.NewPinger()
+
+	for w.active {
+		r := w.watch
+
 	}
 }
 
@@ -280,8 +302,8 @@ func (w *Watcher) getClientAndDialErrRecorder() (client *http.Client, errRecorde
 	return
 }
 
-// actual watch
-func (w *Watcher) watch(client *http.Client, errRecorder *dialerErrRecorder) (r *Result) {
+// actual service watch
+func (w *Watcher) watchService(client *http.Client, errRecorder *dialerErrRecorder) (r *Result) {
 
 	r = NewResult(w.service.ID)
 
@@ -362,4 +384,37 @@ func (w *Watcher) watch(client *http.Client, errRecorder *dialerErrRecorder) (r 
 	// r.addError(errors.New(fmt.Sprint("response time too slow:", runTimeMilliseconds, ", should not be more than:", maxRuntime)), ErrorTypeServerTooSlow)
 	//r.StatusCode = response.StatusCode
 	return
+}
+
+// actual host watch
+func (w *Watcher) watchHost(client *http.Client, errRecorder *dialerErrRecorder) (r *Result) {
+	
+	r = NewResult(w.host.ID)
+
+	pinger, err := ping.NewPinger(w.host.ID)
+
+	if err != nil {
+		r.addError(err, ErrorInvalidEndpoint, "")
+		return r
+	}
+	pinger.Count = 1
+	pinger.Run()
+
+	// my personal dns error check
+	if len(pinger.Host) > 0 {
+		host := request.Host
+		parts := strings.Split(host, ":")
+		if len(parts) > 1 {
+			host, _, err = net.SplitHostPort(request.Host)
+			if err != nil {
+				r.addError(err, ErrorInvalidEndpoint, "")
+				return
+			}
+		}
+		_, lookupErr := net.LookupIP(host)
+		if lookupErr != nil {
+			r.addError(lookupErr, ErrorTypeDNS, "")
+			return
+		}
+	}
 }
