@@ -3,12 +3,13 @@ package slack
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/sirupsen/logrus"
-	prefixed "github.com/x-cray/logrus-prefixed-formatter"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/sirupsen/logrus"
+	prefixed "github.com/x-cray/logrus-prefixed-formatter"
 )
 
 var (
@@ -77,7 +78,7 @@ func Send(message []byte) {
 	Log.Info("slack bot response body: ", string(responseBody))
 }
 
-func GenerateErrorMessage(errs []error, service string) []byte {
+func GenerateServiceErrorMessage(errs []error, service string) []byte {
 
 	var errMessage = []string{
 		time.Now().Format(timestampFormat),
@@ -99,11 +100,49 @@ func GenerateErrorMessage(errs []error, service string) []byte {
 	return marshalledMessage
 }
 
-func GenerateResolvedNotification(service string) []byte {
+func GenerateHostErrorMessage(errs []error, service string) []byte {
 
 	var errMessage = []string{
 		time.Now().Format(timestampFormat),
-		"service " + strings.ToUpper(service) + " is back to normal operation!",
+		"an error occured for host " + strings.ToUpper(service) + "\n",
+	}
+
+	if len(errs) > 0 {
+		for _, e := range errs {
+			errMessage = append(errMessage, e.Error())
+		}
+	}
+
+	unmarshalledMessage := &Message{Text: strings.Join(errMessage, " ")}
+	marshalledMessage, err := json.Marshal(unmarshalledMessage)
+	if err != nil {
+		Log.Error(err)
+	}
+
+	return marshalledMessage
+}
+
+func GenerateServiceErrorResolvedNotification(service string) []byte {
+
+	var errMessage = []string{
+		time.Now().Format(timestampFormat),
+		"Service " + strings.ToUpper(service) + " is back to normal operation!",
+	}
+
+	unmarshalledMessage := &Message{Text: strings.Join(errMessage, " ")}
+	marshalledMessage, err := json.Marshal(unmarshalledMessage)
+	if err != nil {
+		Log.Error(err)
+	}
+
+	return marshalledMessage
+}
+
+func GenerateHostErrorResolvedNotification(service string) []byte {
+
+	var errMessage = []string{
+		time.Now().Format(timestampFormat),
+		"Host " + strings.ToUpper(service) + " is back to normal operation!",
 	}
 
 	unmarshalledMessage := &Message{Text: strings.Join(errMessage, " ")}

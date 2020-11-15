@@ -8,7 +8,6 @@ import (
 	auth "github.com/abbot/go-http-auth"
 	"github.com/foomo/petze/collector"
 	"github.com/foomo/petze/config"
-	"github.com/foomo/petze/hosts"
 	"github.com/julienschmidt/httprouter"
 
 	"github.com/foomo/petze/exporter"
@@ -32,8 +31,8 @@ type server struct {
 	collector *collector.Collector
 }
 
-func newServer(servicesConfigFile string, hostsConfigFile) (s *server, err error) {
-	coll, err := collector.NewCollector(servicesConfigFile, hostsConfigFile)
+func newServer(configFile string) (s *server, err error) {
+	coll, err := collector.NewCollector(configFile+"/services", configFile+"/hosts")
 	defer coll.Start()
 	s = &server{
 		router:    httprouter.New(),
@@ -104,15 +103,17 @@ func getTLSConfig() *tls.Config {
 }
 
 // Run as a server
-func Run(c *config.Server, servicesConfigfile string) error {
+func Run(c *config.Server, configFile string) error {
 
-	s, err := newServer(servicesConfigfile)
+	s, err := newServer(configFile)
 	if err != nil {
 		return err
 	}
 	// register additional listeners which listen to results
-	s.collector.RegisterListener(exporter.PrometheusMetricsListener)
-	s.collector.RegisterListener(exporter.LogResultHandler)
+	s.collector.RegisterServiceListener(exporter.PrometheusServiceMetricsListener)
+	s.collector.RegisterHostListener(exporter.PrometheusHostMetricsListener)
+	s.collector.RegisterServiceListener(exporter.LogServiceResultHandler)
+	s.collector.RegisterHostListener(exporter.LogHostResultHandler)
 
 	log.Info("starting petze server on: ", c.Address)
 

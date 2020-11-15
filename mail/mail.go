@@ -116,7 +116,7 @@ func Send(to string, subject string, mail hermes.Email) {
 		// prevent loop
 		if to != m.from {
 			// notify grand master
-			Send(m.from, "[Mail Error] "+subject+" to "+to, GenerateErrorMail([]error{err}, "failed to send mail", "internal"))
+			Send(m.from, "[Mail Error] "+subject+" to "+to, GenerateServiceErrorMail([]error{err}, "failed to send mail", "internal"))
 		}
 	}
 }
@@ -156,7 +156,7 @@ func renderMail(mail hermes.Email) (html, plainText string, err error) {
 	return
 }
 
-func GenerateErrorMail(errs []error, msg string, service string) hermes.Email {
+func GenerateServiceErrorMail(errs []error, msg string, service string) hermes.Email {
 
 	var intros = []string{
 		"An error with the service " + strings.ToUpper(service) + " occurred:",
@@ -182,14 +182,54 @@ func GenerateErrorMail(errs []error, msg string, service string) hermes.Email {
 	}
 }
 
-func GenerateResolvedNotificationMail(service string) hermes.Email {
+func GenerateHostErrorMail(errs []error, msg string, service string) hermes.Email {
+
+	var intros = []string{
+		"An error with the host " + strings.ToUpper(service) + " occurred:",
+		"Timestamp: " + time.Now().Format(timestampFormat),
+	}
+	if msg != "" {
+		intros = append(intros, "Message: "+msg)
+	}
+	if len(errs) > 0 {
+		intros = append(intros, "Errors: ")
+		for _, e := range errs {
+			intros = append(intros, e.Error())
+		}
+	}
+
+	return hermes.Email{
+		Body: hermes.Body{
+			Greeting:  "Dear",
+			Name:      "Admin",
+			Signature: "kind regards",
+			Intros:    intros,
+		},
+	}
+}
+
+func GenerateServiceResolvedNotificationMail(service string) hermes.Email {
 	return hermes.Email{
 		Body: hermes.Body{
 			Greeting:  "Dear",
 			Name:      "Admin",
 			Signature: "kind regards",
 			Intros: []string{
-				"service " + strings.ToUpper(service) + " is back to normal operation",
+				"Service " + strings.ToUpper(service) + " is back to normal operation",
+				"Timestamp: " + time.Now().Format(timestampFormat),
+			},
+		},
+	}
+}
+
+func GenerateHostResolvedNotificationMail(service string) hermes.Email {
+	return hermes.Email{
+		Body: hermes.Body{
+			Greeting:  "Dear",
+			Name:      "Admin",
+			Signature: "kind regards",
+			Intros: []string{
+				"Host " + strings.ToUpper(service) + " is back to normal operation",
 				"Timestamp: " + time.Now().Format(timestampFormat),
 			},
 		},

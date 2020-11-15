@@ -10,32 +10,40 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type ResultListener func(watch.Result)
+type ServiceResultListener func(watch.ServiceResult)
+type HostResultListener func(watch.HostResult)
 
 // Collector collects stats on hosts & services
 type Collector struct {
-	servicesConfigDir string
-	hostsConfigDir    string
-	chanServices      chan map[string]*config.Service
-	chanHosts         chan map[string]*config.Host
-	chanGetResults    chan map[string][]watch.Result
-	watchers          map[string]*watch.Watcher
-	resultListeners   []ResultListener
-	services          map[string]*config.Service
-	hosts             map[string]*config.Host
+	servicesConfigDir      string
+	hostsConfigDir         string
+	chanServices           chan map[string]*config.Service
+	chanHosts              chan map[string]*config.Host
+	chanGetServiceResults  chan map[string][]watch.ServiceResult
+	chanGetHostResults     chan map[string][]watch.HostResult
+	serviceWatchers        map[string]*watch.ServiceWatcher
+	hostWatchers           map[string]*watch.HostWatcher
+	serviceResultListeners []ServiceResultListener
+	hostResultListeners    []HostResultListener
+	services               map[string]*config.Service
+	hosts                  map[string]*config.Host
 }
 
 // NewCollector construct a collector - it will watch its config files for changes
 func NewCollector(servicesConfigDir string, hostsConfigDir string) (c *Collector, err error) {
 	c = &Collector{
-		servicesConfigDir: servicesConfigDir,
-		hostsConfigDir: hostsConfigDir,
-		services:          make(map[string]*config.Service),
-		hosts:             make(map[string]*config.Host),
-		chanServices:      make(chan map[string]*config.Service),
-		chanGetResults:    make(chan map[string][]watch.Result),
-		watchers:          make(map[string]*watch.Watcher),
-		resultListeners:   make([]ResultListener, 0),
+		servicesConfigDir:      servicesConfigDir,
+		hostsConfigDir:         hostsConfigDir,
+		services:               make(map[string]*config.Service),
+		hosts:                  make(map[string]*config.Host),
+		chanServices:           make(chan map[string]*config.Service),
+		chanHosts:              make(chan map[string]*config.Host),
+		chanGetServiceResults:  make(chan map[string][]watch.ServiceResult),
+		chanGetHostResults:     make(chan map[string][]watch.HostResult),
+		serviceWatchers:        make(map[string]*watch.ServiceWatcher),
+		hostWatchers:           make(map[string]*watch.HostWatcher),
+		serviceResultListeners: make([]ServiceResultListener, 0),
+		hostResultListeners:    make([]HostResultListener, 0),
 	}
 
 	return c, nil
@@ -47,47 +55,67 @@ func (c *Collector) Start() {
 	go c.configWatch()
 }
 
-const maxResults = 1000
+const maxServiceResults = 1000
+const maxHostResults = 1000
 
-func (c *Collector) RegisterListener(listener ResultListener) {
-	c.resultListeners = append(c.resultListeners, listener)
+func (c *Collector) RegisterServiceListener(listener ServiceResultListener) {
+	c.serviceResultListeners = append(c.serviceResultListeners, listener)
 }
 
-func (c *Collector) NotifyListeners(result watch.Result) {
-	for _, listener := range c.resultListeners {
+func (c *Collector) RegisterHostListener(listener HostResultListener) {
+	c.hostResultListeners = append(c.hostResultListeners, listener)
+}
+
+func (c *Collector) NotifyServiceListeners(result watch.ServiceResult) {
+	for _, listener := range c.serviceResultListeners {
+		listener(result)
+	}
+}
+
+func (c *Collector) NotifyHostListeners(result watch.HostResult) {
+	for _, listener := range c.hostResultListeners {
 		listener(result)
 	}
 }
 
 func (c *Collector) collect() {
 
-	chanResult := make(chan watch.Result)
-	results := map[string][]watch.Result{}
+	chanServiceResult := make(chan watch.ServiceResult)
+	chanHostResult := make(chan watch.HostResult)
+	serviceResults := map[string][]watch.ServiceResult{}
+	hostResults := map[string][]watch.HostResult{}
 
 	for {
 		select {
-		case <-c.chanGetResults:
-			resultsCopy := map[string][]watch.Result{}
-			for name, results := range results {
-				resultsCopy[name] = results
+		case <-c.chanGetServiceResults:
+			serviceResultsCopy := map[string][]watch.ServiceResult{}
+			for name, serviceResults := range serviceResults {
+				serviceResultsCopy[name] = serviceResults
 			}
-			c.chanGetResults <- resultsCopy
+			c.chanGetServiceResults <- serviceResultsCopy
+
+		case <-c.chanGetHostResults:
+			hostResultsCopy := map[string][]watch.HostResult{}
+			for name, hostResults := range hostResults {
+				hostResultsCopy[name] = hostResults
+			}
+			c.chanGetHostResults <- hostResultsCopy
 		case newServices := <-c.chanServices:
 			c.services = newServices
 
 			var lastErrors = make(map[string][]watch.Error)
 
 			// stop old watchers
-			for oldWatcherID, oldWatcher := range c.watchers {
-				oldWatcher.Stop()
+			for oldWatcherID, oldWatcher := range c.serviceWatchers {
+				oldWatcher.Watcher.Stop()
 
 				// if the service had errors before updating the config
 				// store them in a map so we can transfer them to the updated watchers
-				if len(oldWatcher.LastErrors()) > 0 {
-					lastErrors[oldWatcherID] = oldWatcher.LastErrors()
+				if len(oldWatcher.Watcher.LastErrors()) > 0 {
+					lastErrors[oldWatcherID] = oldWatcher.Watcher.LastErrors()
 				}
 
-				delete(c.watchers, oldWatcherID)
+				delete(c.serviceWatchers, oldWatcherID)
 			}
 
 			// setup new watchers
@@ -96,17 +124,18 @@ func (c *Collector) collect() {
 				lastErrs, ok := lastErrors[serviceID]
 				if ok {
 					// transfer errors to new watcher
-					newWatcher := watch.WatchService(service, chanResult)
+					newWatcher := watch.WatchService(service, chanServiceResult, chanHostResult, c.hosts)
 					newWatcher.SetLastErrors(lastErrs)
-					c.watchers[serviceID] = newWatcher
+					c.serviceWatchers[serviceID] = newWatcher
 				} else {
 					// no errors - init a new watcher
-					c.watchers[serviceID] = watch.WatchService(service, chanResult)
+					// TODO: when starting up c.hosts is empty...
+					c.serviceWatchers[serviceID] = watch.WatchService(service, chanServiceResult, chanHostResult, c.hosts)
 				}
 				// reset stored results
-				_, ok = results[serviceID]
+				_, ok = serviceResults[serviceID]
 				if !ok {
-					results[serviceID] = []watch.Result{}
+					serviceResults[serviceID] = []watch.ServiceResult{}
 				}
 			}
 		case newHosts := <-c.chanHosts:
@@ -115,67 +144,91 @@ func (c *Collector) collect() {
 			var lastErrors = make(map[string][]watch.Error)
 
 			// stop old watchers
-			for oldWatcherID, oldWatcher := range c.watchers {
-				oldWatcher.Stop()
+			for oldWatcherID, oldWatcher := range c.hostWatchers {
+				oldWatcher.Watcher.Stop()
 
-				// if the service had errors before updating the config
+				// if the host had errors before updating the config
 				// store them in a map so we can transfer them to the updated watchers
-				if len(oldWatcher.LastErrors()) > 0 {
-					lastErrors[oldWatcherID] = oldWatcher.LastErrors()
+				if len(oldWatcher.Watcher.LastErrors()) > 0 {
+					lastErrors[oldWatcherID] = oldWatcher.Watcher.LastErrors()
 				}
 
-				delete(c.watchers, oldWatcherID)
+				delete(c.hostWatchers, oldWatcherID)
 			}
 
 			// setup new watchers
 			for hostID, host := range c.hosts {
-				// check if the service had errors before being updated
+				// check if the host had errors before being updated
 				lastErrs, ok := lastErrors[hostID]
 				if ok {
 					// transfer errors to new watcher
-					newWatcher := watch.WatchHost(host, chanResult)
+					newWatcher := watch.WatchHost(host, chanHostResult)
 					newWatcher.SetLastErrors(lastErrs)
-					c.watchers[hostID] = newWatcher
+					c.hostWatchers[hostID] = newWatcher
 				} else {
 					// no errors - init a new watcher
-					c.watchers[hostID] = watch.WatchHost(host, chanResult)
+					c.hostWatchers[hostID] = watch.WatchHost(host, chanHostResult)
 				}
 				// reset stored results
-				_, ok = results[hostID]
+				_, ok = hostResults[hostID]
 				if !ok {
-					results[hostID] = []watch.Result{}
+					hostResults[hostID] = []watch.HostResult{}
 				}
 			}
 			// clean up results
-			for possiblyUnknownServiceID := range results {
-				_, ok := c.watchers[possiblyUnknownServiceID]
+			for possiblyUnknownHostID := range hostResults {
+				_, ok := c.hostWatchers[possiblyUnknownHostID]
 				if !ok {
 					// clean up results
-					delete(results, possiblyUnknownServiceID)
+					delete(hostResults, possiblyUnknownHostID)
 				}
 			}
-		case result := <-chanResult:
-			serviceResults, ok := results[result.ID]
+		case serviceResult := <-chanServiceResult:
+			serviceResultsFromChan, ok := serviceResults[serviceResult.Result.ID]
 			if ok {
-				serviceResults = append(serviceResults, result)
-				if len(serviceResults) > maxResults {
-					serviceResults = serviceResults[len(serviceResults)-maxResults:]
+				serviceResultsFromChan = append(serviceResultsFromChan, serviceResult)
+				if len(serviceResultsFromChan) > maxServiceResults {
+					serviceResultsFromChan = serviceResultsFromChan[len(serviceResultsFromChan)-maxServiceResults:]
 				}
-				results[result.ID] = serviceResults
+				serviceResults[serviceResult.Result.ID] = serviceResultsFromChan
 
-				c.NotifyListeners(result)
+				c.NotifyServiceListeners(serviceResult)
+			}
+		case hostResult := <-chanHostResult:
+			hostResultsFromChan, ok := hostResults[hostResult.Result.ID]
+			if ok {
+				hostResultsFromChan = append(hostResultsFromChan, hostResult)
+				if len(hostResultsFromChan) > maxHostResults {
+					hostResultsFromChan = hostResultsFromChan[len(hostResultsFromChan)-maxHostResults:]
+				}
+				hostResults[hostResult.Result.ID] = hostResultsFromChan
+
+				c.NotifyHostListeners(hostResult)
 			}
 		}
 	}
 }
 
-// GetResults get current results
-func (c *Collector) GetResults() map[string][]watch.Result {
-	c.chanGetResults <- nil
-	return <-c.chanGetResults
+func (c *Collector) GetServiceResults() map[string][]watch.ServiceResult {
+	c.chanGetServiceResults <- nil
+	return <-c.chanGetServiceResults
+}
+
+func (c *Collector) GetHostResults() map[string][]watch.HostResult {
+	c.chanGetHostResults <- nil
+	return <-c.chanGetHostResults
 }
 
 func hashServiceConfig(config map[string]*config.Service) (hash string) {
+	hash = "invalid config"
+	jsonBytes, errJSON := json.Marshal(config)
+	if errJSON == nil {
+		hash = string(jsonBytes)
+	}
+	return hash
+}
+
+func hashHostConfig(config map[string]*config.Host) (hash string) {
 	hash = "invalid config"
 	jsonBytes, errJSON := json.Marshal(config)
 	if errJSON == nil {
@@ -188,14 +241,27 @@ func (c *Collector) configWatch() {
 	for {
 		services, errServices := config.LoadServices(c.servicesConfigDir)
 		if errServices != nil {
-			log.Error("could not read configuration:", errServices)
+			log.Error("could not read configuration: ", errServices)
 		}
 		if errServices == nil {
 			newHash := hashServiceConfig(services)
 			oldHash := hashServiceConfig(c.services)
 			if newHash != oldHash {
-				log.Info("configuration update successful")
+				log.Info("service configuration update successful")
 				c.updateServices()
+			}
+		}
+
+		hosts, errHosts := config.LoadHosts(c.hostsConfigDir, services)
+		if errHosts != nil {
+			log.Error("could not read configuration: ", errHosts)
+		}
+		if errHosts == nil {
+			newHash := hashHostConfig(hosts)
+			oldHash := hashHostConfig(c.hosts)
+			if newHash != oldHash {
+				log.Info("host configuration update successful")
+				c.updateHosts()
 			}
 		}
 		time.Sleep(10 * time.Second)
@@ -208,6 +274,16 @@ func (c *Collector) updateServices() error {
 		c.chanServices <- services
 	} else {
 		log.Warn("could not update services:", err)
+	}
+	return err
+}
+
+func (c *Collector) updateHosts() error {
+	hosts, err := config.LoadHosts(c.hostsConfigDir, c.services)
+	if err == nil {
+		c.chanHosts <- hosts
+	} else {
+		log.Warn("could not update hosts:", err)
 	}
 	return err
 }

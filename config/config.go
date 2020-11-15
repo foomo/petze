@@ -58,7 +58,7 @@ type Service struct {
 	Endpoint string        `yaml:"endpoint"`
 	Interval time.Duration `yaml:"interval"`
 
-	Session    []Call        `yaml:"session"`
+	Session []Call `yaml:"session"`
 
 	// Notifications
 	NotifyIfResolved bool `yaml:"notifyIfResolved"`
@@ -71,22 +71,23 @@ type Service struct {
 type Host struct {
 
 	// host identifier
-	ID         string `yaml:"id"`
-	DomainName string `yaml:"domainname"`
-	Interval time.Duration `yaml:"interval"`
+	ID         string        `yaml:"id"`
+	DomainName string        `yaml:"domainname"`
+	Interval   time.Duration `yaml:"interval"`
+	Timeout    time.Duration `yaml:"timeout"`
 
 	// Notifications
 	NotifyIfResolved bool `yaml:"notifyIfResolved"`
 
 	// List of services running on host
-	services []Service `yaml:"services"`
+	Services []string `yaml:"services"`
 }
 
 // Server models the petze.yml main config file
 type Server struct {
 
 	// endpoint to expose metrics
-	Address       string `yaml:"address"`
+	Address string `yaml:"address"`
 
 	// auth
 	BasicAuthFile string `yaml:"basicAuthFile"`
