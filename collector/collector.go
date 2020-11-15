@@ -117,7 +117,6 @@ func (c *Collector) collect() {
 
 				delete(c.serviceWatchers, oldWatcherID)
 			}
-
 			// setup new watchers
 			for serviceID, service := range c.services {
 				// check if the service had errors before being updated
@@ -138,6 +137,7 @@ func (c *Collector) collect() {
 					serviceResults[serviceID] = []watch.ServiceResult{}
 				}
 			}
+
 		case newHosts := <-c.chanHosts:
 			c.hosts = newHosts
 
@@ -252,7 +252,8 @@ func (c *Collector) configWatch() {
 			}
 		}
 
-		hosts, errHosts := config.LoadHosts(c.hostsConfigDir, services)
+		hosts, errHosts := config.LoadHosts(c.hostsConfigDir)
+
 		if errHosts != nil {
 			log.Error("could not read configuration: ", errHosts)
 		}
@@ -262,6 +263,16 @@ func (c *Collector) configWatch() {
 			if newHash != oldHash {
 				log.Info("host configuration update successful")
 				c.updateHosts()
+			}
+		}
+
+		// check if service defined in host config exists
+		for _, hostConfig := range hosts {
+			// validate services
+			for _, service := range hostConfig.Services {
+				if _, ok := services[service]; !ok {
+					log.Fatal("host " + hostConfig.Hostname + " has service " + service + " in its list of services but the service doesn't exist in the service config dir")
+				}
 			}
 		}
 		time.Sleep(10 * time.Second)
@@ -279,7 +290,7 @@ func (c *Collector) updateServices() error {
 }
 
 func (c *Collector) updateHosts() error {
-	hosts, err := config.LoadHosts(c.hostsConfigDir, c.services)
+	hosts, err := config.LoadHosts(c.hostsConfigDir)
 	if err == nil {
 		c.chanHosts <- hosts
 	} else {

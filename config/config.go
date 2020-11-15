@@ -71,10 +71,10 @@ type Service struct {
 type Host struct {
 
 	// host identifier
-	ID         string        `yaml:"id"`
-	DomainName string        `yaml:"domainname"`
-	Interval   time.Duration `yaml:"interval"`
-	Timeout    time.Duration `yaml:"timeout"`
+	ID       string        `yaml:"id"`
+	Hostname string        `yaml:"hostname"`
+	Interval time.Duration `yaml:"interval"`
+	Timeout  time.Duration `yaml:"timeout"`
 
 	// Notifications
 	NotifyIfResolved bool `yaml:"notifyIfResolved"`

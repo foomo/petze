@@ -144,13 +144,13 @@ type Watcher struct {
 }
 
 type ServiceWatcher struct {
-	Watcher Watcher
+	Watcher
 	service *config.Service
 }
 
 type HostWatcher struct {
-	Watcher Watcher
-	host    *config.Host
+	Watcher
+	host *config.Host
 }
 
 // Watch create a service watcher and start watching
@@ -205,39 +205,12 @@ func (serviceWatcher *ServiceWatcher) serviceWatchLoop(chanServiceResult chan Se
 
 	for serviceWatcher.Watcher.active {
 		r := serviceWatcher.watchService(httpClient, errRecorder)
-		if serviceWatcher.Watcher.active {
+		if serviceWatcher.active {
 
-			fmt.Println("host is down check")
-			hostIsDown := false
-			fmt.Println(hosts)
-			for hostName, hostConfig := range hosts {
-				for _, hostService := range hostConfig.Services {
-					fmt.Println("host name: " + hostName)
-					fmt.Println("host service: " + hostService)
-					fmt.Println("service id: " + serviceWatcher.service.ID)
-					if hostService == serviceWatcher.service.ID {
-						fmt.Println("service id matches host service!")
-						// check if the host is down
-						// TODO: fix this broken garbage
-						for hostResult := range chanHostResult {
-							fmt.Println("host results id: " + hostResult.Result.ID)
-							if hostResult.Result.ID == hostName {
-								// host is down, do not notify
-								hostIsDown = true
-							}
-						}
-					}
-				}
-			}
-
-			fmt.Println("host is down: " + strconv.FormatBool(hostIsDown))
-
-			if !hostIsDown {
-				// send notifications
-				serviceWatcher.Watcher.smsNotify(&r.Result, true, serviceWatcher.service.ID, serviceWatcher.service.NotifyIfResolved)
-				serviceWatcher.Watcher.mailNotify(&r.Result, true, serviceWatcher.service.ID, serviceWatcher.service.NotifyIfResolved)
-				serviceWatcher.Watcher.slackNotify(&r.Result, true, serviceWatcher.service.ID, serviceWatcher.service.NotifyIfResolved)
-			}
+			// send notifications
+			serviceWatcher.smsNotify(&r.Result, true, serviceWatcher.service.ID, serviceWatcher.service.NotifyIfResolved)
+			serviceWatcher.mailNotify(&r.Result, true, serviceWatcher.service.ID, serviceWatcher.service.NotifyIfResolved)
+			serviceWatcher.slackNotify(&r.Result, true, serviceWatcher.service.ID, serviceWatcher.service.NotifyIfResolved)
 
 			chanServiceResult <- *r
 			time.Sleep(serviceWatcher.service.Interval)
@@ -251,14 +224,14 @@ func (hostWatcher *HostWatcher) hostWatchLoop(chanHostResult chan HostResult) {
 		errors: []Error{},
 	}
 
-	for hostWatcher.Watcher.active {
+	for hostWatcher.active {
 		r := hostWatcher.watchHost(errRecorder)
-		if hostWatcher.Watcher.active {
+		if hostWatcher.active {
 
 			// send notifications
-			hostWatcher.Watcher.smsNotify(&r.Result, false, hostWatcher.host.ID, hostWatcher.host.NotifyIfResolved)
-			hostWatcher.Watcher.mailNotify(&r.Result, false, hostWatcher.host.ID, hostWatcher.host.NotifyIfResolved)
-			hostWatcher.Watcher.slackNotify(&r.Result, false, hostWatcher.host.ID, hostWatcher.host.NotifyIfResolved)
+			hostWatcher.smsNotify(&r.Result, false, hostWatcher.host.ID, hostWatcher.host.NotifyIfResolved)
+			hostWatcher.mailNotify(&r.Result, false, hostWatcher.host.ID, hostWatcher.host.NotifyIfResolved)
+			hostWatcher.slackNotify(&r.Result, false, hostWatcher.host.ID, hostWatcher.host.NotifyIfResolved)
 
 			chanHostResult <- *r
 			time.Sleep(hostWatcher.host.Interval)
@@ -464,8 +437,6 @@ func (serviceWatcher *ServiceWatcher) watchService(client *http.Client, errRecor
 	}
 	serviceResult.Result.RunTime = time.Since(serviceResult.Result.Timestamp)
 
-	// r.addError(errors.New(fmt.Sprint("response time too slow:", runTimeMilliseconds, ", should not be more than:", maxRuntime)), ErrorTypeServerTooSlow)
-	//r.StatusCode = response.StatusCode
 	return
 }
 
@@ -474,7 +445,7 @@ func (hostWatcher *HostWatcher) watchHost(errRecorder *dialerErrRecorder) (hostR
 
 	hostResult = NewHostResult(hostWatcher.host.ID)
 
-	pinger, err := ping.NewPinger(hostWatcher.host.DomainName)
+	pinger, err := ping.NewPinger(hostWatcher.host.Hostname)
 
 	if err != nil {
 		hostResult.addError(err, ErrorHostLookup, "")
@@ -486,22 +457,14 @@ func (hostWatcher *HostWatcher) watchHost(errRecorder *dialerErrRecorder) (hostR
 	pinger.Timeout = hostWatcher.host.Timeout
 	pinger.SetPrivileged(true)
 
-	fmt.Println(hostWatcher.host.DomainName)
+	fmt.Println(hostWatcher.host.Hostname)
 
 	pinger.OnRecv = func(pkt *ping.Packet) {
-		fmt.Printf("%d bytes from %s: icmp_seq=%d time=%v\n",
-			pkt.Nbytes, pkt.IPAddr, pkt.Seq, pkt.Rtt)
 		hostResult.Result.RunTime = pkt.Rtt
 	}
 	pinger.OnFinish = func(stats *ping.Statistics) {
-		fmt.Printf("\n--- %s ping statistics ---\n", stats.Addr)
-		fmt.Printf("%d packets transmitted, %d packets received, %v%% packet loss\n",
-			stats.PacketsSent, stats.PacketsRecv, stats.PacketLoss)
-		fmt.Printf("round-trip min/avg/max/stddev = %v/%v/%v/%v\n",
-			stats.MinRtt, stats.AvgRtt, stats.MaxRtt, stats.StdDevRtt)
-
 		if stats.PacketsRecv == 0 {
-			hostResult.addError(errors.New("ICMP packet to: "+hostWatcher.host.DomainName+" was lost"), ErrorHostUnreachable, "")
+			hostResult.addError(errors.New("ICMP packet to: "+hostWatcher.host.Hostname+" was lost"), ErrorHostUnreachable, "")
 		}
 	}
 

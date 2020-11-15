@@ -33,9 +33,9 @@ func LoadServices(configDir string) (services map[string]*Service, err error) {
 	return services, nil
 }
 
-func LoadHosts(configDir string, services map[string]*Service) (hosts map[string]*Host, err error) {
+func LoadHosts(configDir string) (hosts map[string]*Host, err error) {
 	hosts = make(map[string]*Host)
-	errLoadServices := loadHostsFromDir(configDir, hosts, services)
+	errLoadServices := loadHostsFromDir(configDir, hosts)
 	if errLoadServices != nil {
 		err = errors.New("could not load host configurations from config dir : " + configDir + ",  : " + errLoadServices.Error())
 		return
@@ -82,7 +82,7 @@ func loadServicesFromDir(configDir string, targets map[string]*Service) error {
 	})
 }
 
-func loadHostsFromDir(configDir string, targets map[string]*Host, services map[string]*Service) error {
+func loadHostsFromDir(configDir string, targets map[string]*Host) error {
 	absoluteConfigDir, errAbsoluteConfigDir := filepath.Abs(configDir)
 	if errAbsoluteConfigDir != nil {
 		return errAbsoluteConfigDir
@@ -95,15 +95,6 @@ func loadHostsFromDir(configDir string, targets map[string]*Host, services map[s
 			loadErr := load(fp, &hostConfig)
 			if loadErr != nil {
 				return loadErr
-			}
-
-			// check if services exist
-			for _, hostService := range hostConfig.Services {
-				// validate services
-				_, hostServiceHasConfig := services[hostService]
-				if !hostServiceHasConfig {
-					return errors.New("host " + hostConfig.DomainName + " has service " + hostService + " in its list of services but the service doesn't exist in the service config dir")
-				}
 			}
 			return nil
 		}
