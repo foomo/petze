@@ -1,0 +1,15 @@
+# service metrics at this endpoint
+address: 127.0.0.1:8080
+
+# configure SMTP notifications
+smtp:
+  server: smtp-relay.yourprovider.com
+  user: you@mail.com
+  pass: yourpassword
+  port: 465
+  from: replyto@mail.com
+  to:
+    - user1tonotify@mail.com
+    - user2tonotify@mail.com
+
+slack: https://hooks.slack.com/services/custom-parameters

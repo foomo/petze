@@ -25,7 +25,7 @@ As of June 2017 we have a first working version and we are trying to get the con
 Petze is configured through a set of yaml configuration files. The path to folder containing the configuration is passed to petze as the first argument on the commandline.
 
 ```bash
-$ petze path/to/petzconf
+$ petze path/to/confdir
 ``` 
 
 Take a look at a simple example config: https://github.com/foomo/petze/tree/master/exampleConfig
@@ -34,6 +34,18 @@ Take a look at a simple example config: https://github.com/foomo/petze/tree/mast
 
 The configuration file for petze is called: **petze.yml**.
 It provides information for the petze service, as well the configuration for your notifications.
+
+The hierarchy of the config folder should look as follows:
+```
+exampleConfigs/
+  petze.yml
+  services/
+    spiegel.yml
+    google.yml
+    bestbytes.yml
+  hosts/
+    example.yml
+```
 
 ## Main config file petze.yml
 
@@ -76,7 +88,7 @@ sms:
 
 ## Service configuration files
 
-Any other files with a .yml suffix will be treated as service configurations. 
+Files in the services subdirectory with a .yml suffix will be treated as service configuration files.
 It is strongly encouraged to organize them in folder structures. 
 These will be reflected in the service ids.
 
@@ -132,6 +144,27 @@ session:
       - redirect: "https://myservice.com/asdf"
       # match the raw response string
       - matchReply: "asdf"
+```
+
+
+## Host Configuration files
+
+Files in the hosts subdirectory with a .yml suffix will be treated as host configuration files.
+
+```yaml
+# host name to check
+hostname: example.hostname.com
+
+# interval of the ICMP echo request
+interval: 10s
+
+# ICMP echo request timeout
+timeout: 5s
+
+# services that are running on this host
+services:
+  - spiegel
+  - google
 ```
 
 ## SMTP Integration

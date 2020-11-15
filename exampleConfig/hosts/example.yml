@@ -1,0 +1,6 @@
+hostname: example.hostname.com
+interval: 10s
+timeout: 5s
+services:
+  - spiegel
+  - google
