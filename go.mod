@@ -12,6 +12,7 @@ require (
 	github.com/abbot/go-http-auth v0.4.0
 	github.com/andybalholm/cascadia v1.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.1
+	github.com/go-ping/ping v0.0.0-20201022122018-3977ed72668a
 	github.com/google/uuid v1.1.1 // indirect
 	github.com/huandu/xstrings v1.3.2 // indirect
 	github.com/imdario/mergo v0.3.9 // indirect
@@ -35,7 +36,6 @@ require (
 	github.com/ttacon/builder v0.0.0-20170518171403-c099f663e1c2 // indirect
 	github.com/ttacon/libphonenumber v1.1.0 // indirect
 	github.com/x-cray/logrus-prefixed-formatter v0.5.2
-	golang.org/x/net v0.0.0-20200625001655-4c5254603344 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 	gopkg.in/yaml.v2 v2.3.0

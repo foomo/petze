@@ -21,10 +21,10 @@ import (
 var userAgent = "Petze Service Monitor"
 
 func SetUserAgentVersion(version string) {
-	userAgent += "/"+version
+	userAgent += "/" + version
 }
 
-func (w *Watcher) runSession(r *Result, client *http.Client) error {
+func (w *ServiceWatcher) runSession(r *ServiceResult, client *http.Client) error {
 
 	//log.Println("running session with session length:", len(service.Session))
 	//spew.Dump(service)

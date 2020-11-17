@@ -16,18 +16,36 @@ func InitSMS(c *config.SMS) {
 	conf = c
 }
 
-func SendErrors(errs []error, service string) {
+func SendServiceErrors(errs []error, service string) {
 	if conf.TwilioSID != "" && conf.TwilioToken != "" {
-		SendTwilioSMS(GenerateTwilioErrorSMS(errs, service))
+		SendTwilioSMS(GenerateTwilioServiceErrorSMS(errs, service))
 	}
 	if conf.SendInBlueAPIKey != "" {
 		SendSIB(GenerateSIBErrorSMS(errs, service))
 	}
 }
 
-func SendResolvedNotification(service string) {
+func SendHostErrors(errs []error, service string) {
 	if conf.TwilioSID != "" && conf.TwilioToken != "" {
-		SendTwilioSMS(GenerateTwilioResolvedSMS(service))
+		SendTwilioSMS(GenerateTwilioHostErrorSMS(errs, service))
+	}
+	if conf.SendInBlueAPIKey != "" {
+		SendSIB(GenerateSIBErrorSMS(errs, service))
+	}
+}
+
+func SendServiceErrorResolvedNotification(service string) {
+	if conf.TwilioSID != "" && conf.TwilioToken != "" {
+		SendTwilioSMS(GenerateTwilioServiceErrorResolvedSMS(service))
+	}
+	if conf.SendInBlueAPIKey != "" {
+		SendSIB(GenerateSIBResolvedSMS(service))
+	}
+}
+
+func SendHostErrorResolvedNotification(service string) {
+	if conf.TwilioSID != "" && conf.TwilioToken != "" {
+		SendTwilioSMS(GenerateTwilioHostErrorResolvedSMS(service))
 	}
 	if conf.SendInBlueAPIKey != "" {
 		SendSIB(GenerateSIBResolvedSMS(service))

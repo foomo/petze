@@ -1,19 +1,24 @@
 package collector
 
 import (
-	"github.com/foomo/petze/watch"
 	"testing"
+
+	"github.com/foomo/petze/watch"
 )
 
 func TestCollectorListeners(t *testing.T) {
-	var actualResult watch.Result
-	c, _ := NewCollector("")
-	c.RegisterListener(func(result watch.Result) {
+	var actualResult watch.ServiceResult
+	c, _ := NewCollector("", "")
+	c.RegisterServiceListener(func(result watch.ServiceResult) {
 		actualResult = result
 	})
 
-	expectedResult := watch.Result{ID: "some-fake-id"}
-	c.NotifyListeners(expectedResult)
+	expectedResult := watch.ServiceResult{
+		Result: watch.Result{
+			ID: "some-fake-id",
+		},
+	}
+	c.NotifyServiceListeners(expectedResult)
 
 	if actualResult.ID != expectedResult.ID {
 		t.Error("actual result is not equal to the expected result")

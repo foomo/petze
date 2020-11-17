@@ -31,8 +31,8 @@ type server struct {
 	collector *collector.Collector
 }
 
-func newServer(servicesConfigfile string) (s *server, err error) {
-	coll, err := collector.NewCollector(servicesConfigfile)
+func newServer(configFile string) (s *server, err error) {
+	coll, err := collector.NewCollector(configFile+"/services", configFile+"/hosts")
 	defer coll.Start()
 	s = &server{
 		router:    httprouter.New(),
@@ -40,7 +40,9 @@ func newServer(servicesConfigfile string) (s *server, err error) {
 	}
 
 	s.router.GET("/services", s.GETServices)
-	s.router.GET("/status", s.GETStatus)
+	s.router.GET("/services/status", s.GETServicesStatus)
+	s.router.GET("/hosts", s.GETHosts)
+	s.router.GET("/hosts/status", s.GETHostsStatus)
 	s.router.Handler("GET", "/metrics", promhttp.Handler())
 
 	return s, nil
@@ -101,15 +103,17 @@ func getTLSConfig() *tls.Config {
 }
 
 // Run as a server
-func Run(c *config.Server, servicesConfigfile string) error {
+func Run(c *config.Server, configFile string) error {
 
-	s, err := newServer(servicesConfigfile)
+	s, err := newServer(configFile)
 	if err != nil {
 		return err
 	}
 	// register additional listeners which listen to results
-	s.collector.RegisterListener(exporter.PrometheusMetricsListener)
-	s.collector.RegisterListener(exporter.LogResultHandler)
+	s.collector.RegisterServiceListener(exporter.PrometheusServiceMetricsListener)
+	s.collector.RegisterHostListener(exporter.PrometheusHostMetricsListener)
+	s.collector.RegisterServiceListener(exporter.LogServiceResultHandler)
+	s.collector.RegisterHostListener(exporter.LogHostResultHandler)
 
 	log.Info("starting petze server on: ", c.Address)
 

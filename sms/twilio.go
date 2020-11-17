@@ -1,18 +1,19 @@
 package sms
 
 import (
-	"github.com/kevinburke/twilio-go"
 	"log"
 	"strings"
 	"time"
+
+	"github.com/kevinburke/twilio-go"
 )
 
 type TwilioSMS struct {
-	To string
+	To   string
 	Body string
 }
 
-func GenerateTwilioErrorSMS(errs []error, service string) []*TwilioSMS {
+func GenerateTwilioServiceErrorSMS(errs []error, service string) []*TwilioSMS {
 
 	var smsArr []*TwilioSMS
 	for _, recipient := range conf.To {
@@ -29,7 +30,7 @@ func GenerateTwilioErrorSMS(errs []error, service string) []*TwilioSMS {
 			}
 		}
 		smsArr = append(smsArr, &TwilioSMS{
-			To:      recipient,
+			To:   recipient,
 			Body: strings.Join(lines, "\n"),
 		})
 	}
@@ -37,18 +38,62 @@ func GenerateTwilioErrorSMS(errs []error, service string) []*TwilioSMS {
 	return smsArr
 }
 
-func GenerateTwilioResolvedSMS(service string) []*TwilioSMS {
+func GenerateTwilioHostErrorSMS(errs []error, service string) []*TwilioSMS {
 
 	var smsArr []*TwilioSMS
 	for _, recipient := range conf.To {
 
 		var lines = []string{
 			"Dear Admin,",
-			"service " + strings.ToUpper(service) + " is back to normal operation",
+			"An error with the host " + strings.ToUpper(service) + " occurred:",
+			"Timestamp: " + time.Now().Format(timestampFormat),
+		}
+		if len(errs) > 0 {
+			lines = append(lines, "Errors: ")
+			for _, e := range errs {
+				lines = append(lines, e.Error())
+			}
+		}
+		smsArr = append(smsArr, &TwilioSMS{
+			To:   recipient,
+			Body: strings.Join(lines, "\n"),
+		})
+	}
+
+	return smsArr
+}
+
+func GenerateTwilioServiceErrorResolvedSMS(service string) []*TwilioSMS {
+
+	var smsArr []*TwilioSMS
+	for _, recipient := range conf.To {
+
+		var lines = []string{
+			"Dear Admin,",
+			"Service " + strings.ToUpper(service) + " is back to normal operation",
 			"Timestamp: " + time.Now().Format(timestampFormat),
 		}
 		smsArr = append(smsArr, &TwilioSMS{
-			To:      recipient,
+			To:   recipient,
+			Body: strings.Join(lines, "\n"),
+		})
+	}
+
+	return smsArr
+}
+
+func GenerateTwilioHostErrorResolvedSMS(service string) []*TwilioSMS {
+
+	var smsArr []*TwilioSMS
+	for _, recipient := range conf.To {
+
+		var lines = []string{
+			"Dear Admin,",
+			"Host " + strings.ToUpper(service) + " is back to normal operation",
+			"Timestamp: " + time.Now().Format(timestampFormat),
+		}
+		smsArr = append(smsArr, &TwilioSMS{
+			To:   recipient,
 			Body: strings.Join(lines, "\n"),
 		})
 	}

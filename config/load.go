@@ -33,6 +33,22 @@ func LoadServices(configDir string) (services map[string]*Service, err error) {
 	return services, nil
 }
 
+func LoadHosts(configDir string) (hosts map[string]*Host, err error) {
+	hosts = make(map[string]*Host)
+	errLoadServices := loadHostsFromDir(configDir, hosts)
+	if errLoadServices != nil {
+		err = errors.New("could not load host configurations from config dir : " + configDir + ",  : " + errLoadServices.Error())
+		return
+	}
+	for id, host := range hosts {
+		host.ID = id
+		if host.Interval == 0 {
+			host.Interval = 60
+		}
+	}
+	return hosts, nil
+}
+
 func LoadServer(configDir string) (server *Server, err error) {
 	server = &Server{}
 	return server, load(path.Join(configDir, serverConfigFile), &server)
@@ -59,6 +75,26 @@ func loadServicesFromDir(configDir string, targets map[string]*Service) error {
 			}
 			if serviceConfig.TLSWarning == 0 {
 				serviceConfig.TLSWarning = defaultTLSExpiryWarning
+			}
+			return nil
+		}
+		return nil
+	})
+}
+
+func loadHostsFromDir(configDir string, targets map[string]*Host) error {
+	absoluteConfigDir, errAbsoluteConfigDir := filepath.Abs(configDir)
+	if errAbsoluteConfigDir != nil {
+		return errAbsoluteConfigDir
+	}
+	return filepath.Walk(absoluteConfigDir, func(fp string, info os.FileInfo, err error) error {
+		if !info.IsDir() && !strings.HasPrefix(info.Name(), ".") && strings.HasSuffix(fp, ".yml") && info.Name() != "petze.yml" {
+			p := strings.TrimSuffix(strings.TrimPrefix(fp, absoluteConfigDir+string(os.PathSeparator)), ".yml")
+			hostConfig := &Host{}
+			targets[p] = hostConfig
+			loadErr := load(fp, &hostConfig)
+			if loadErr != nil {
+				return loadErr
 			}
 			return nil
 		}

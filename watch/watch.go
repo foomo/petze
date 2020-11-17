@@ -12,6 +12,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-ping/ping"
+
 	"reflect"
 
 	"github.com/foomo/petze/config"
@@ -33,6 +35,8 @@ type ErrorType string
 
 const (
 	ErrorInvalidEndpoint           ErrorType = "endpointInvalid"
+	ErrorHostLookup                          = "hostLookupFailure"
+	ErrorHostUnreachable                     = "hostUnreachable"
 	ErrorTypeServerTooSlow                   = "serverTooSlow"
 	ErrorTypeNotImplemented                  = "notImplemented"
 	ErrorTypeUnknownError                    = "unknownError"
@@ -73,16 +77,40 @@ type Result struct {
 	RunTime   time.Duration `json:"runtime"`
 }
 
-func NewResult(id string) *Result {
-	return &Result{
-		ID:        id,
-		Errors:    []Error{},
-		Timestamp: time.Now(),
+type ServiceResult struct {
+	Result
+}
+
+type HostResult struct {
+	Result
+}
+
+func NewServiceResult(id string) *ServiceResult {
+	return &ServiceResult{
+		Result: Result{
+			ID:        id,
+			Errors:    []Error{},
+			Timestamp: time.Now(),
+		},
 	}
 }
 
-func (r *Result) addError(e error, t ErrorType, comment string) {
-	r.Errors = addError(r.Errors, e, t, comment)
+func NewHostResult(id string) *HostResult {
+	return &HostResult{
+		Result: Result{
+			ID:        id,
+			Errors:    []Error{},
+			Timestamp: time.Now(),
+		},
+	}
+}
+
+func (serviceResult *ServiceResult) addError(e error, t ErrorType, comment string) {
+	serviceResult.Errors = addError(serviceResult.Errors, e, t, comment)
+}
+
+func (hostResult *HostResult) addError(e error, t ErrorType, comment string) {
+	hostResult.Errors = addError(hostResult.Errors, e, t, comment)
 }
 
 func addError(errors []Error, err error, t ErrorType, comment string) []Error {
@@ -106,8 +134,7 @@ type dialerErrRecorder struct {
 }
 
 type Watcher struct {
-	active                      bool
-	service                     *config.Service
+	active bool
 
 	// notifications
 	didReceiveMailNotification  bool
@@ -116,15 +143,40 @@ type Watcher struct {
 	lastErrors                  []Error
 }
 
-// Watch create a watcher and start watching
-func Watch(service *config.Service, chanResult chan Result) *Watcher {
+type ServiceWatcher struct {
+	Watcher
+	service *config.Service
+}
 
-	w := &Watcher{
-		active:  true,
+type HostWatcher struct {
+	Watcher
+	host *config.Host
+}
+
+// Watch create a service watcher and start watching
+func WatchService(service *config.Service, chanServiceResult chan ServiceResult, chanHostResult chan HostResult, hosts map[string]*config.Host) *ServiceWatcher {
+
+	serviceWatcher := &ServiceWatcher{
+		Watcher: Watcher{
+			active: true,
+		},
 		service: service,
 	}
-	go w.watchLoop(chanResult)
-	return w
+	go serviceWatcher.serviceWatchLoop(chanServiceResult, chanHostResult, hosts)
+	return serviceWatcher
+}
+
+// Create a host watcher and start watching
+func WatchHost(host *config.Host, chanResult chan HostResult) *HostWatcher {
+
+	hostWatcher := &HostWatcher{
+		Watcher: Watcher{
+			active: true,
+		},
+		host: host,
+	}
+	go hostWatcher.hostWatchLoop(chanResult)
+	return hostWatcher
 }
 
 // Stop watching - beware this is async
@@ -139,29 +191,55 @@ func (w *Watcher) LastErrors() []Error {
 	return nil
 }
 
-func (w *Watcher) SetLastErrors(errs []Error) {
-	w.lastErrors = errs
+func (serviceWatcher *ServiceWatcher) SetLastErrors(errs []Error) {
+	serviceWatcher.lastErrors = errs
 }
 
-func (w *Watcher) watchLoop(chanResult chan Result) {
-	httpClient, errRecorder := w.getClientAndDialErrRecorder()
+func (hostWatcher *HostWatcher) SetLastErrors(errs []Error) {
+	hostWatcher.lastErrors = errs
+}
 
-	for w.active {
-		r := w.watch(httpClient, errRecorder)
-		if w.active {
+func (serviceWatcher *ServiceWatcher) serviceWatchLoop(chanServiceResult chan ServiceResult, chanHostResult chan HostResult, hosts map[string]*config.Host) {
+
+	httpClient, errRecorder := serviceWatcher.getClientAndDialErrRecorder()
+
+	for serviceWatcher.Watcher.active {
+		r := serviceWatcher.watchService(httpClient, errRecorder)
+		if serviceWatcher.active {
 
 			// send notifications
-			w.smsNotify(r)
-			w.mailNotify(r)
-			w.slackNotify(r)
+			serviceWatcher.smsNotify(&r.Result, true, serviceWatcher.service.ID, serviceWatcher.service.NotifyIfResolved)
+			serviceWatcher.mailNotify(&r.Result, true, serviceWatcher.service.ID, serviceWatcher.service.NotifyIfResolved)
+			serviceWatcher.slackNotify(&r.Result, true, serviceWatcher.service.ID, serviceWatcher.service.NotifyIfResolved)
 
-			chanResult <- *r
-			time.Sleep(w.service.Interval)
+			chanServiceResult <- *r
+			time.Sleep(serviceWatcher.service.Interval)
 		}
 	}
 }
 
-func (w *Watcher) getClientAndDialErrRecorder() (client *http.Client, errRecorder *dialerErrRecorder) {
+func (hostWatcher *HostWatcher) hostWatchLoop(chanHostResult chan HostResult) {
+
+	errRecorder := &dialerErrRecorder{
+		errors: []Error{},
+	}
+
+	for hostWatcher.active {
+		r := hostWatcher.watchHost(errRecorder)
+		if hostWatcher.active {
+
+			// send notifications
+			hostWatcher.smsNotify(&r.Result, false, hostWatcher.host.ID, hostWatcher.host.NotifyIfResolved)
+			hostWatcher.mailNotify(&r.Result, false, hostWatcher.host.ID, hostWatcher.host.NotifyIfResolved)
+			hostWatcher.slackNotify(&r.Result, false, hostWatcher.host.ID, hostWatcher.host.NotifyIfResolved)
+
+			chanHostResult <- *r
+			time.Sleep(hostWatcher.host.Interval)
+		}
+	}
+}
+
+func (serviceWatcher *ServiceWatcher) getClientAndDialErrRecorder() (client *http.Client, errRecorder *dialerErrRecorder) {
 	errRecorder = &dialerErrRecorder{
 		errors: []Error{},
 	}
@@ -177,15 +255,15 @@ func (w *Watcher) getClientAndDialErrRecorder() (client *http.Client, errRecorde
 			connectionState := tlsConn.ConnectionState()
 			for _, cert := range connectionState.PeerCertificates {
 				durationUntilExpiry := cert.NotAfter.Sub(time.Now())
-				if durationUntilExpiry < w.service.TLSWarning {
+				if durationUntilExpiry < serviceWatcher.service.TLSWarning {
 					var (
-						prefix = "cert CN=\"" + cert.Subject.CommonName
+						prefix  = "cert CN=\"" + cert.Subject.CommonName
 						certErr = Error{
-							Error:   errors.New(
+							Error: errors.New(
 								fmt.Sprint(
 									"cert CN=\"",
 									cert.Subject.CommonName,
-									"\" is expiring in less than "+strconv.FormatFloat(w.service.TLSWarning.Hours(), 'f', 0, 64)+"h: ",
+									"\" is expiring in less than "+strconv.FormatFloat(serviceWatcher.service.TLSWarning.Hours(), 'f', 0, 64)+"h: ",
 									cert.NotAfter,
 									", left: ",
 									strconv.FormatFloat(durationUntilExpiry.Hours(), 'f', 0, 64),
@@ -280,16 +358,16 @@ func (w *Watcher) getClientAndDialErrRecorder() (client *http.Client, errRecorde
 	return
 }
 
-// actual watch
-func (w *Watcher) watch(client *http.Client, errRecorder *dialerErrRecorder) (r *Result) {
+// actual service watch
+func (serviceWatcher *ServiceWatcher) watchService(client *http.Client, errRecorder *dialerErrRecorder) (serviceResult *ServiceResult) {
 
-	r = NewResult(w.service.ID)
+	serviceResult = NewServiceResult(serviceWatcher.service.ID)
 
 	// parsing, the endpoint
-	request, err := http.NewRequest("GET", w.service.Endpoint, nil)
+	request, err := http.NewRequest("GET", serviceWatcher.service.Endpoint, nil)
 	if err != nil {
-		r.addError(err, ErrorInvalidEndpoint, "")
-		return r
+		serviceResult.addError(err, ErrorInvalidEndpoint, "")
+		return serviceResult
 	}
 	// my personal dns error check
 	if len(request.Host) > 0 {
@@ -298,20 +376,20 @@ func (w *Watcher) watch(client *http.Client, errRecorder *dialerErrRecorder) (r 
 		if len(parts) > 1 {
 			host, _, err = net.SplitHostPort(request.Host)
 			if err != nil {
-				r.addError(err, ErrorInvalidEndpoint, "")
+				serviceResult.addError(err, ErrorInvalidEndpoint, "")
 				return
 			}
 		}
 		_, lookupErr := net.LookupIP(host)
 		if lookupErr != nil {
-			r.addError(lookupErr, ErrorTypeDNS, "")
+			serviceResult.addError(lookupErr, ErrorTypeDNS, "")
 			return
 		}
 	}
 
 	// i am explicitly not calling http.Get, because it does 30x handling and i do not want that
 	response, err := client.Do(request)
-	r.Errors = append(r.Errors, errRecorder.errors...)
+	serviceResult.Errors = append(serviceResult.Errors, errRecorder.errors...)
 
 	if response != nil && response.Body != nil {
 		// always close the body
@@ -320,31 +398,31 @@ func (w *Watcher) watch(client *http.Client, errRecorder *dialerErrRecorder) (r 
 
 	if err != nil {
 		// sth. went wrong
-		r.addError(err, ErrorTypeClientError, "")
+		serviceResult.addError(err, ErrorTypeClientError, "")
 		var netErr net.Error
 		switch true {
 		case errRecorder.tlsHostnameError != nil:
-			r.addError(errRecorder.tlsHostnameError, ErrorTypeTLSHostNameError, "")
+			serviceResult.addError(errRecorder.tlsHostnameError, ErrorTypeTLSHostNameError, "")
 		case errRecorder.tlsSystemRootsError != nil:
-			r.addError(errRecorder.tlsSystemRootsError, ErrorTypeTLSSystemRootsError, "")
+			serviceResult.addError(errRecorder.tlsSystemRootsError, ErrorTypeTLSSystemRootsError, "")
 		case errRecorder.tlsUnknownAuthorityError != nil:
-			r.addError(errRecorder.tlsUnknownAuthorityError, ErrorTypeTLSUnknownAuthority, "")
+			serviceResult.addError(errRecorder.tlsUnknownAuthorityError, ErrorTypeTLSUnknownAuthority, "")
 		case errRecorder.tlsCertificateInvalidError != nil:
-			r.addError(errRecorder.tlsCertificateInvalidError, ErrorTypeTLSCertificateInvalid, "")
+			serviceResult.addError(errRecorder.tlsCertificateInvalidError, ErrorTypeTLSCertificateInvalid, "")
 		case errRecorder.unknownErr != nil:
-			r.addError(errRecorder.unknownErr, ErrorTypeUnknownError, "")
+			serviceResult.addError(errRecorder.unknownErr, ErrorTypeUnknownError, "")
 		case errRecorder.dnsConfigError != nil:
 			netErr = errRecorder.dnsConfigError
-			r.addError(errRecorder.dnsConfigError, ErrorTypeDNSConfig, "")
+			serviceResult.addError(errRecorder.dnsConfigError, ErrorTypeDNSConfig, "")
 		case errRecorder.dnsError != nil:
 			netErr = errRecorder.dnsError
-			r.addError(errRecorder.dnsError, ErrorTypeDNS, "")
+			serviceResult.addError(errRecorder.dnsError, ErrorTypeDNS, "")
 		case errRecorder.err != nil:
 			netErr = errRecorder.err
-			r.addError(errRecorder.err, ErrorTypeUnknownError, "")
+			serviceResult.addError(errRecorder.err, ErrorTypeUnknownError, "")
 		}
 		if netErr != nil {
-			r.Timeout = netErr.Timeout()
+			serviceResult.Timeout = netErr.Timeout()
 		}
 		return
 	}
@@ -352,14 +430,50 @@ func (w *Watcher) watch(client *http.Client, errRecorder *dialerErrRecorder) (r 
 	// prepare to run the session with cookies
 	cookieJar, _ := cookiejar.New(nil)
 	client.Jar = cookieJar
-	errSession := w.runSession(r, client)
+	errSession := serviceWatcher.runSession(serviceResult, client)
 	if errSession != nil {
 		log.Error("session error", errSession)
-		r.addError(errSession, ErrorTypeSessionFail, "")
+		serviceResult.addError(errSession, ErrorTypeSessionFail, "")
 	}
-	r.RunTime = time.Since(r.Timestamp)
+	serviceResult.RunTime = time.Since(serviceResult.Timestamp)
 
-	// r.addError(errors.New(fmt.Sprint("response time too slow:", runTimeMilliseconds, ", should not be more than:", maxRuntime)), ErrorTypeServerTooSlow)
-	//r.StatusCode = response.StatusCode
+	return
+}
+
+// actual host watch
+func (hostWatcher *HostWatcher) watchHost(errRecorder *dialerErrRecorder) (hostResult *HostResult) {
+
+	hostResult = NewHostResult(hostWatcher.host.ID)
+
+	pinger, err := ping.NewPinger(hostWatcher.host.Hostname)
+
+	if err != nil {
+		hostResult.addError(err, ErrorHostLookup, "")
+		return hostResult
+	}
+
+	pinger.Count = 1
+	pinger.Interval = hostWatcher.host.Interval
+	pinger.Timeout = hostWatcher.host.Timeout
+	pinger.SetPrivileged(true)
+
+	fmt.Println(hostWatcher.host.Hostname)
+
+	pinger.OnRecv = func(pkt *ping.Packet) {
+		hostResult.RunTime = pkt.Rtt
+	}
+	pinger.OnFinish = func(stats *ping.Statistics) {
+		if stats.PacketsRecv == 0 {
+			hostResult.addError(errors.New("ICMP packet to: "+hostWatcher.host.Hostname+" was lost"), ErrorHostUnreachable, "")
+		}
+	}
+
+	err = pinger.Run() // blocking
+
+	if err != nil {
+		hostResult.addError(err, ErrorHostUnreachable, "")
+		return hostResult
+	}
+
 	return
 }
