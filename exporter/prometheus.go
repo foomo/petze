@@ -38,11 +38,11 @@ func init() {
 }
 
 func PrometheusServiceMetricsListener(serviceResult watch.ServiceResult) {
-	serviceErrors.WithLabelValues(serviceResult.Result.ID).Set(float64(len(serviceResult.Result.Errors)))
-	serviceResponseTimes.WithLabelValues(serviceResult.Result.ID).Set(float64(serviceResult.Result.RunTime / time.Millisecond))
+	serviceErrors.WithLabelValues(serviceResult.ID).Set(float64(len(serviceResult.Errors)))
+	serviceResponseTimes.WithLabelValues(serviceResult.ID).Set(float64(serviceResult.RunTime / time.Millisecond))
 }
 
 func PrometheusHostMetricsListener(hostResult watch.HostResult) {
-	hostErrors.WithLabelValues(hostResult.Result.ID).Set(float64(len(hostResult.Result.Errors)))
-	hostResponseTimes.WithLabelValues(hostResult.Result.ID).Set(float64(hostResult.Result.RunTime / time.Millisecond))
+	hostErrors.WithLabelValues(hostResult.ID).Set(float64(len(hostResult.Errors)))
+	hostResponseTimes.WithLabelValues(hostResult.ID).Set(float64(hostResult.RunTime / time.Millisecond))
 }

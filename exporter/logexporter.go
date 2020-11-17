@@ -7,13 +7,13 @@ import (
 
 func LogServiceResultHandler(serviceResult watch.ServiceResult) {
 	logger := logrus.WithFields(logrus.Fields{
-		"service_id": serviceResult.Result.ID,
-		"runtime":    serviceResult.Result.RunTime,
-		"timeout":    serviceResult.Result.Timeout,
+		"service_id": serviceResult.ID,
+		"runtime":    serviceResult.RunTime,
+		"timeout":    serviceResult.Timeout,
 	})
 
-	if len(serviceResult.Result.Errors) > 0 {
-		for _, err := range serviceResult.Result.Errors {
+	if len(serviceResult.Errors) > 0 {
+		for _, err := range serviceResult.Errors {
 			if err.Comment != "" {
 				logger = logger.WithField("comment", err.Comment)
 			}
@@ -29,13 +29,13 @@ func LogServiceResultHandler(serviceResult watch.ServiceResult) {
 
 func LogHostResultHandler(hostResult watch.HostResult) {
 	logger := logrus.WithFields(logrus.Fields{
-		"host_id": hostResult.Result.ID,
-		"rtt":     hostResult.Result.RunTime,
-		"timeout": hostResult.Result.Timeout,
+		"host_id": hostResult.ID,
+		"rtt":     hostResult.RunTime,
+		"timeout": hostResult.Timeout,
 	})
 
-	if len(hostResult.Result.Errors) > 0 {
-		for _, err := range hostResult.Result.Errors {
+	if len(hostResult.Errors) > 0 {
+		for _, err := range hostResult.Errors {
 			if err.Comment != "" {
 				logger = logger.WithField("comment", err.Comment)
 			}

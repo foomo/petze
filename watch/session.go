@@ -110,7 +110,7 @@ func (w *ServiceWatcher) runSession(r *ServiceResult, client *http.Client) error
 			}
 			for _, newErr := range checkResponse(ctx) {
 				newErr.Location = fmt.Sprint("@call[", indexCall, "].check[", indexCheck, "]")
-				r.Result.Errors = append(r.Result.Errors, newErr)
+				r.Errors = append(r.Errors, newErr)
 			}
 			responseBodyReader.Seek(0, io.SeekStart)
 		}

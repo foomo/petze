@@ -78,11 +78,11 @@ type Result struct {
 }
 
 type ServiceResult struct {
-	Result Result
+	Result
 }
 
 type HostResult struct {
-	Result Result
+	Result
 }
 
 func NewServiceResult(id string) *ServiceResult {
@@ -106,11 +106,11 @@ func NewHostResult(id string) *HostResult {
 }
 
 func (serviceResult *ServiceResult) addError(e error, t ErrorType, comment string) {
-	serviceResult.Result.Errors = addError(serviceResult.Result.Errors, e, t, comment)
+	serviceResult.Errors = addError(serviceResult.Errors, e, t, comment)
 }
 
 func (hostResult *HostResult) addError(e error, t ErrorType, comment string) {
-	hostResult.Result.Errors = addError(hostResult.Result.Errors, e, t, comment)
+	hostResult.Errors = addError(hostResult.Errors, e, t, comment)
 }
 
 func addError(errors []Error, err error, t ErrorType, comment string) []Error {
@@ -192,11 +192,11 @@ func (w *Watcher) LastErrors() []Error {
 }
 
 func (serviceWatcher *ServiceWatcher) SetLastErrors(errs []Error) {
-	serviceWatcher.Watcher.lastErrors = errs
+	serviceWatcher.lastErrors = errs
 }
 
 func (hostWatcher *HostWatcher) SetLastErrors(errs []Error) {
-	hostWatcher.Watcher.lastErrors = errs
+	hostWatcher.lastErrors = errs
 }
 
 func (serviceWatcher *ServiceWatcher) serviceWatchLoop(chanServiceResult chan ServiceResult, chanHostResult chan HostResult, hosts map[string]*config.Host) {
@@ -389,7 +389,7 @@ func (serviceWatcher *ServiceWatcher) watchService(client *http.Client, errRecor
 
 	// i am explicitly not calling http.Get, because it does 30x handling and i do not want that
 	response, err := client.Do(request)
-	serviceResult.Result.Errors = append(serviceResult.Result.Errors, errRecorder.errors...)
+	serviceResult.Errors = append(serviceResult.Errors, errRecorder.errors...)
 
 	if response != nil && response.Body != nil {
 		// always close the body
@@ -422,7 +422,7 @@ func (serviceWatcher *ServiceWatcher) watchService(client *http.Client, errRecor
 			serviceResult.addError(errRecorder.err, ErrorTypeUnknownError, "")
 		}
 		if netErr != nil {
-			serviceResult.Result.Timeout = netErr.Timeout()
+			serviceResult.Timeout = netErr.Timeout()
 		}
 		return
 	}
@@ -435,7 +435,7 @@ func (serviceWatcher *ServiceWatcher) watchService(client *http.Client, errRecor
 		log.Error("session error", errSession)
 		serviceResult.addError(errSession, ErrorTypeSessionFail, "")
 	}
-	serviceResult.Result.RunTime = time.Since(serviceResult.Result.Timestamp)
+	serviceResult.RunTime = time.Since(serviceResult.Timestamp)
 
 	return
 }
@@ -460,7 +460,7 @@ func (hostWatcher *HostWatcher) watchHost(errRecorder *dialerErrRecorder) (hostR
 	fmt.Println(hostWatcher.host.Hostname)
 
 	pinger.OnRecv = func(pkt *ping.Packet) {
-		hostResult.Result.RunTime = pkt.Rtt
+		hostResult.RunTime = pkt.Rtt
 	}
 	pinger.OnFinish = func(stats *ping.Statistics) {
 		if stats.PacketsRecv == 0 {

@@ -184,24 +184,24 @@ func (c *Collector) collect() {
 				}
 			}
 		case serviceResult := <-chanServiceResult:
-			serviceResultsFromChan, ok := serviceResults[serviceResult.Result.ID]
+			serviceResultsFromChan, ok := serviceResults[serviceResult.ID]
 			if ok {
 				serviceResultsFromChan = append(serviceResultsFromChan, serviceResult)
 				if len(serviceResultsFromChan) > maxServiceResults {
 					serviceResultsFromChan = serviceResultsFromChan[len(serviceResultsFromChan)-maxServiceResults:]
 				}
-				serviceResults[serviceResult.Result.ID] = serviceResultsFromChan
+				serviceResults[serviceResult.ID] = serviceResultsFromChan
 
 				c.NotifyServiceListeners(serviceResult)
 			}
 		case hostResult := <-chanHostResult:
-			hostResultsFromChan, ok := hostResults[hostResult.Result.ID]
+			hostResultsFromChan, ok := hostResults[hostResult.ID]
 			if ok {
 				hostResultsFromChan = append(hostResultsFromChan, hostResult)
 				if len(hostResultsFromChan) > maxHostResults {
 					hostResultsFromChan = hostResultsFromChan[len(hostResultsFromChan)-maxHostResults:]
 				}
-				hostResults[hostResult.Result.ID] = hostResultsFromChan
+				hostResults[hostResult.ID] = hostResultsFromChan
 
 				c.NotifyHostListeners(hostResult)
 			}
