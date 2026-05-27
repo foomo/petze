@@ -5,7 +5,7 @@ go 1.14
 require (
 	github.com/Jeffail/gabs v1.4.0
 	github.com/JumboInteractiveLimited/jsonpath v0.0.0-20180321012328-6fcdcc9066b5
-	github.com/Masterminds/goutils v1.1.0 // indirect
+	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/Masterminds/sprig v2.22.0+incompatible // indirect
 	github.com/PuerkitoBio/goquery v1.5.1
@@ -30,12 +30,11 @@ require (
 	github.com/mitchellh/reflectwalk v1.0.1 // indirect
 	github.com/olekukonko/tablewriter v0.0.4 // indirect
 	github.com/onsi/ginkgo v1.14.0 // indirect
-	github.com/prometheus/client_golang v1.7.1
-	github.com/sirupsen/logrus v1.6.0
+	github.com/prometheus/client_golang v1.11.1
+	github.com/sirupsen/logrus v1.8.3
 	github.com/ttacon/builder v0.0.0-20170518171403-c099f663e1c2 // indirect
 	github.com/ttacon/libphonenumber v1.1.0 // indirect
 	github.com/x-cray/logrus-prefixed-formatter v0.5.2
-	golang.org/x/net v0.0.0-20200625001655-4c5254603344 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 	gopkg.in/yaml.v2 v2.3.0
